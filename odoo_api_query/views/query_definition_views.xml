@@ -1,0 +1,42 @@
+<odoo>
+    <record id="view_api_query_definition_tree" model="ir.ui.view">
+        <field name="name">api.query.definition.tree</field>
+        <field name="model">api.query.definition</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="query_key"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_api_query_definition_form" model="ir.ui.view">
+        <field name="name">api.query.definition.form</field>
+        <field name="model">api.query.definition</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="query_key"/>
+                        <field name="sql_query"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_api_query_definition" model="ir.actions.act_window">
+        <field name="name">Query Definitions</field>
+        <field name="res_model">api.query.definition</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_api_query_root" name="Analytics API"/>
+    <menuitem id="menu_api_query_definition"
+              name="Query Definitions"
+              parent="menu_api_query_root"
+              action="action_api_query_definition"/>
+</odoo>
