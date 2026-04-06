@@ -34,9 +34,13 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_api_query_root" name="Analytics API"/>
+    <menuitem id="menu_api_query_root"
+          name="Analytics API"
+          groups="base.group_system"/>
+
     <menuitem id="menu_api_query_definition"
-              name="Query Definitions"
-              parent="menu_api_query_root"
-              action="action_api_query_definition"/>
+          name="Query Definitions"
+          parent="menu_api_query_root"
+          action="action_api_query_definition"
+          groups="base.group_system"/>
 </odoo>
