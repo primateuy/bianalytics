@@ -1,0 +1,64 @@
+<odoo>
+
+    <record id="view_api_query_log_tree" model="ir.ui.view">
+        <field name="name">api.query.log.tree</field>
+        <field name="model">api.query.log</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="start_datetime"/>
+                <field name="end_datetime"/>
+                <field name="query_key"/>
+                <field name="status"/>
+                <field name="total_records"/>
+                <field name="page_records"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_api_query_log_form" model="ir.ui.view">
+        <field name="name">api.query.log.form</field>
+        <field name="model">api.query.log</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="start_datetime"/>
+                        <field name="end_datetime"/>
+                        <field name="query_key"/>
+                        <field name="status"/>
+                    </group>
+
+                    <group>
+                        <field name="total_records"/>
+                        <field name="page_records"/>
+                    </group>
+
+                    <notebook>
+                        <page string="SQL">
+                            <field name="sql_text"/>
+                        </page>
+                        <page string="Params">
+                            <field name="params_text"/>
+                        </page>
+                        <page string="Error">
+                            <field name="error_message"/>
+                        </page>
+                    </notebook>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_api_query_log" model="ir.actions.act_window">
+        <field name="name">API Logs</field>
+        <field name="res_model">api.query.log</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_api_query_logs"
+              name="Logs"
+              parent="menu_api_query_root"
+              action="action_api_query_log"/>
+
+</odoo>

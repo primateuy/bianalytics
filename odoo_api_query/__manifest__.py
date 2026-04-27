@@ -8,6 +8,7 @@
     'data': [
         'security/ir.model.access.csv',
         'views/query_definition_views.xml',
+        'views/api_query_log_views.xml',
         'data/config.xml',
     ],
     'installable': True,
