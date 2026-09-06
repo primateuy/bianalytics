@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_target_tree" model="ir.ui.view">
+        <field name="name">primate.target.tree</field>
+        <field name="model">primate.target</field>
+        <field name="arch" type="xml">
+            <tree string="Objetivos" decoration-success="state == 'reached'"
+                  decoration-danger="state == 'missed'" decoration-muted="state == 'draft'">
+                <field name="definition_id"/>
+                <field name="subject_type" column_invisible="1"/>
+                <field name="allocation_mode" column_invisible="1"/>
+                <field name="subject_company_id" optional="show"/>
+                <field name="employee_id" column_invisible="context.get('hide_subject')"
+                       optional="show"/>
+                <field name="user_id" optional="hide"/>
+                <field name="warehouse_id" optional="show"/>
+                <field name="period_label" string="Período"/>
+                <field name="current_value" sum="Total actual"/>
+                <field name="target_value" sum="Total a alcanzar"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="parent_id" optional="hide"/>
+                <field name="child_count" string="Hijos" optional="hide"/>
+                <field name="last_refresh" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'reached'"
+                       decoration-danger="state == 'missed'"
+                       decoration-info="state == 'open'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_target_form" model="ir.ui.view">
+        <field name="name">primate.target.form</field>
+        <field name="model">primate.target</field>
+        <field name="arch" type="xml">
+            <form string="Objetivo">
+                <header>
+                    <button name="action_start" type="object" string="Poner en curso"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_refresh" type="object" string="Actualizar avance"
+                            invisible="state == 'draft'"/>
+                    <button name="action_reset" type="object" string="Volver a borrador"
+                            invisible="state == 'draft'"/>
+                    <button name="action_allocate" type="object"
+                            string="Desagregar al nivel inferior"
+                            invisible="subject_type == 'employee' or subject_type == 'user'"
+                            help="Crea los objetivos del nivel siguiente. Precarga el
+                                  valor ponderado por el histórico del año anterior, o
+                                  repite el valor del padre si la métrica no se reparte."/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,open,reached"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_children" type="object"
+                                class="oe_stat_button" icon="fa-sitemap"
+                                invisible="child_count == 0">
+                            <field name="child_count" widget="statinfo" string="Hijos"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="definition_id" options="{'no_create': True}"/></h1>
+                    </div>
+                    <group>
+                        <group string="Sujeto">
+                            <field name="subject_type" readonly="1"/>
+                            <field name="allocation_mode" readonly="1"/>
+                            <field name="subject_company_id" invisible="subject_type != 'company'"
+                                   required="subject_type == 'company'"/>
+                            <field name="employee_id" invisible="subject_type != 'employee'"
+                                   required="subject_type == 'employee'"/>
+                            <field name="user_id" invisible="subject_type != 'user'"
+                                   required="subject_type == 'user'"/>
+                            <field name="warehouse_id" invisible="subject_type != 'warehouse'"
+                                   required="subject_type == 'warehouse'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Período y meta">
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="target_value"/>
+                            <field name="current_value"/>
+                            <field name="progress" widget="progressbar"/>
+                            <field name="last_refresh"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="plan_id" readonly="1" invisible="not plan_id"/>
+                        <field name="parent_id" readonly="1" invisible="not parent_id"/>
+                    </group>
+                    <notebook invisible="child_count == 0">
+                        <page string="Desagregación" name="allocation">
+                            <group>
+                                <field name="child_target_total"/>
+                                <!-- El descuadre se muestra pero no se impone: ajustar
+                                     una meta a mano es una decisión de negocio. -->
+                                <field name="allocation_diff"
+                                       invisible="allocation_mode != 'distribute'"
+                                       decoration-danger="allocation_diff != 0"/>
+                            </group>
+                            <field name="child_ids" readonly="1">
+                                <tree>
+                                    <field name="subject_company_id" optional="show"/>
+                                    <field name="warehouse_id" optional="show"/>
+                                    <field name="employee_id" optional="show"/>
+                                    <field name="current_value"/>
+                                    <field name="target_value" sum="Suma de los hijos"/>
+                                    <field name="progress" widget="progressbar"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_primate_target_search" model="ir.ui.view">
+        <field name="name">primate.target.search</field>
+        <field name="model">primate.target</field>
+        <field name="arch" type="xml">
+            <search string="Objetivos">
+                <field name="definition_id"/>
+                <field name="employee_id"/>
+                <field name="warehouse_id"/>
+                <filter name="filter_roots" string="Solo nivel superior"
+                        domain="[('parent_id', '=', False)]"/>
+                <filter name="filter_descuadrados" string="Descuadrados"
+                        domain="[('allocation_diff', '!=', 0)]"/>
+                <separator/>
+                <filter name="filter_open" string="En curso" domain="[('state', '=', 'open')]"/>
+                <filter name="filter_reached" string="Alcanzados"
+                        domain="[('state', '=', 'reached')]"/>
+                <filter name="filter_missed" string="No alcanzados"
+                        domain="[('state', '=', 'missed')]"/>
+                <separator/>
+                <filter name="filter_current" string="Período vigente"
+                        domain="[('date_from', '&lt;=', context_today().strftime('%Y-%m-%d')),
+                                 ('date_to', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_definition" string="Definición"
+                            context="{'group_by': 'definition_id'}"/>
+                    <filter name="group_employee" string="Empleado"
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_warehouse" string="Local"
+                            context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_level" string="Nivel"
+                            context="{'group_by': 'subject_type'}"/>
+                    <filter name="group_parent" string="Objetivo padre"
+                            context="{'group_by': 'parent_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_primate_target" model="ir.actions.act_window">
+        <field name="name">Objetivos</field>
+        <field name="res_model">primate.target</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_primate_target_search"/>
+        <field name="context">{'search_default_filter_current': 1}</field>
+    </record>
+
+</odoo>

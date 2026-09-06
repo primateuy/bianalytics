@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Versión 1 de cada métrica del catálogo.
+
+         Estado "confirmed" solo para las definiciones que no dependen de ningún gap
+         abierto. Todo el resto entra como "draft" con su Gap ID, de modo que
+         [('state','=','draft')] liste exactamente lo que falta que Forum confirme.
+
+         Las métricas sin ningún registro de versión acá (visitantes, tasa de conversión,
+         venta promedio diaria, días de stock y las cuatro de metas) están declaradas en
+         primate_metric.xml pero no tienen definición calculable: o no hay fuente del dato
+         en Odoo, o su cálculo pertenece a Sales Targets (Fase 2). -->
+
+    <!-- ===== Volumen (R01, R03) ===== -->
+    <record id="version_boletas_pos" model="primate.metric.version">
+        <field name="metric_id" ref="metric_boletas_pos"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-01/G-06</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order</field>
+        <field name="date_field">date_order</field>
+        <field name="aggregation">count</field>
+        <field name="domain">[('state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="refund_treatment">exclude</field>
+        <field name="refund_field">lines.refunded_orderline_id</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_equipo'), ref('dimension_compania'),
+            ref('dimension_franja'), ref('dimension_dia_semana')])]"/>
+        <field name="notes">Se cuenta la orden de POS. El catálogo define la boleta como
+            asiento contable; esa lectura está en la métrica de facturas.</field>
+    </record>
+
+    <record id="version_boletas_facturas" model="primate.metric.version">
+        <field name="metric_id" ref="metric_boletas_facturas"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-01/G-06</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">account.move</field>
+        <field name="date_field">invoice_date</field>
+        <field name="aggregation">count</field>
+        <field name="domain">[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('journal_id.type', '=', 'sale')]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_equipo'), ref('dimension_compania')])]"/>
+        <field name="notes">Lectura literal del catálogo. No admite franja horaria ni
+            vendedor: la fecha es de tipo date y el vendedor no está en la factura.</field>
+    </record>
+
+    <record id="version_unidades" model="primate.metric.version">
+        <field name="metric_id" ref="metric_unidades"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-28</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">qty</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="refund_treatment">exclude</field>
+        <field name="refund_field">refunded_orderline_id</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_vendedor'), ref('dimension_equipo'),
+            ref('dimension_compania'), ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base'), ref('dimension_variante'),
+            ref('dimension_franja'), ref('dimension_dia_semana')])]"/>
+    </record>
+
+    <!-- Única métrica del catálogo marcada "Definida": R07, ventas reales por local. -->
+    <record id="version_ventas_totales" model="primate.metric.version">
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="version">1</field>
+        <field name="state">confirmed</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">price_subtotal_incl</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="refund_treatment">include</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_vendedor'), ref('dimension_equipo'),
+            ref('dimension_compania'), ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base'), ref('dimension_variante'),
+            ref('dimension_franja'), ref('dimension_dia_semana')])]"/>
+        <field name="notes">Importe con impuestos. Las devoluciones se incluyen con signo
+            negativo, que es lo que hace que el neto del período sea correcto.</field>
+    </record>
+
+    <record id="version_ventas_sin_impuestos" model="primate.metric.version">
+        <field name="metric_id" ref="metric_ventas_sin_impuestos"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-02</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">price_subtotal</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_vendedor'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base')])]"/>
+    </record>
+
+    <!-- ===== Ratios (R01, R05) ===== -->
+    <record id="version_ventas_por_boleta" model="primate.metric.version">
+        <field name="metric_id" ref="metric_ventas_por_boleta"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-03</field>
+        <field name="calc_type">ratio</field>
+        <field name="ratio_mode">aggregate_divide</field>
+        <field name="numerator_version_id" ref="version_ventas_totales"/>
+        <field name="denominator_version_id" ref="version_boletas_pos"/>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_franja'), ref('dimension_dia_semana')])]"/>
+    </record>
+
+    <record id="version_uxb" model="primate.metric.version">
+        <field name="metric_id" ref="metric_unidades_por_boleta"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-05/G-08</field>
+        <field name="calc_type">ratio</field>
+        <field name="ratio_mode">aggregate_divide</field>
+        <field name="numerator_version_id" ref="version_unidades"/>
+        <field name="denominator_version_id" ref="version_boletas_pos"/>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania')])]"/>
+        <field name="notes">No se ofrece el desglose por vendedor: el vendedor está en la
+            línea y la boleta en la orden, así que una boleta con líneas de varios
+            vendedores no tiene un denominador único. Pendiente de criterio (G-05/G-08).</field>
+    </record>
+
+    <!-- ===== Devoluciones y descuentos ===== -->
+    <record id="version_unidades_devueltas" model="primate.metric.version">
+        <field name="metric_id" ref="metric_unidades_devueltas"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-28</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">qty</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="refund_treatment">only</field>
+        <field name="refund_field">refunded_orderline_id</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_producto_base')])]"/>
+    </record>
+
+    <record id="version_descuento_promedio" model="primate.metric.version">
+        <field name="metric_id" ref="metric_descuento_promedio"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-02</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">discount</field>
+        <field name="aggregation">avg</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_vendedor'), ref('dimension_compania'),
+            ref('dimension_subfamilia')])]"/>
+        <field name="notes">Promedio del porcentaje de descuento por línea. Es un promedio
+            de filas por definición del dato, no un agregado ponderado.</field>
+    </record>
+
+    <!-- ===== Rentabilidad (R09, R10) ===== -->
+    <record id="version_cogs" model="primate.metric.version">
+        <field name="metric_id" ref="metric_costo_ventas"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-48</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">total_cost</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base')])]"/>
+        <field name="notes">Usa el costo que registra el POS al cerrar la línea. Del lado
+            de facturas no hay campo de costo: sale_margin no está instalado (G-48).</field>
+    </record>
+
+    <record id="version_margen_bruto" model="primate.metric.version">
+        <field name="metric_id" ref="metric_margen_bruto"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-48</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">margin</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base')])]"/>
+    </record>
+
+    <record id="version_margen_pct" model="primate.metric.version">
+        <field name="metric_id" ref="metric_margen_pct"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-48</field>
+        <field name="calc_type">ratio</field>
+        <field name="ratio_mode">aggregate_divide</field>
+        <field name="numerator_version_id" ref="version_margen_bruto"/>
+        <field name="denominator_version_id" ref="version_ventas_totales"/>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base')])]"/>
+    </record>
+
+    <record id="version_costo_promedio" model="primate.metric.version">
+        <field name="metric_id" ref="metric_costo_promedio_producto"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-42</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="value_field">total_cost</field>
+        <field name="aggregation">avg</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_producto_base'), ref('dimension_variante'),
+            ref('dimension_subfamilia')])]"/>
+        <field name="notes">Promedio del costo por línea vendida. El origen del costo del
+            producto no está confirmado (G-42).</field>
+    </record>
+
+    <!-- ===== Inventario (R08) ===== -->
+    <record id="version_stock_disponible" model="primate.metric.version">
+        <field name="metric_id" ref="metric_stock_disponible"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-39/G-40</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">stock.quant</field>
+        <field name="date_field">write_date</field>
+        <field name="value_field">quantity</field>
+        <field name="aggregation">sum</field>
+        <field name="domain">[('location_id.usage', '=', 'internal')]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base'), ref('dimension_variante')])]"/>
+        <field name="notes">El stock es un saldo, no un flujo: el hecho diario refleja el
+            quant al momento de su última escritura, no un snapshot por día. Qué ubicaciones
+            cuentan sigue sin definirse (G-39, G-40).</field>
+    </record>
+
+</odoo>

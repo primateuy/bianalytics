@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Huso horario de respaldo del precálculo.
+
+         Las cinco compañías hijas tienen America/Montevideo en su partner, pero FORUM
+         (la que concentra 52 de las 69 cajas) no tiene huso definido. Sin este
+         parámetro, sus hechos se agrupaban en UTC y el heatmap por franja horaria
+         mezclaba locales corridos tres horas. -->
+    <record id="param_default_timezone" model="ir.config_parameter">
+        <field name="key">primate_advanced_dashboard.default_timezone</field>
+        <field name="value">America/Montevideo</field>
+    </record>
+
+</odoo>

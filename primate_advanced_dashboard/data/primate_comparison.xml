@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Comparativos iniciales de la sección 6. El tipo de período se toma del filtro
+         del dashboard, así "mismo período del año anterior" compara semana ISO contra
+         semana ISO o mes contra mes según el contexto. -->
+
+    <record id="comparison_same_period_last_year" model="primate.comparison">
+        <field name="name">Mismo período del año anterior</field>
+        <field name="code">same_period_last_year</field>
+        <field name="mode">same_period_last_year</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="comparison_prev_period" model="primate.comparison">
+        <field name="name">Período anterior</field>
+        <field name="code">prev_period</field>
+        <field name="mode">prev_period</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="comparison_mtd_last_year" model="primate.comparison">
+        <field name="name">MTD contra el año anterior</field>
+        <field name="code">mtd_last_year</field>
+        <field name="mode">ptd_last_year</field>
+        <field name="period_type_id" ref="period_type_month"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="comparison_ytd_last_year" model="primate.comparison">
+        <field name="name">YTD contra el año anterior</field>
+        <field name="code">ytd_last_year</field>
+        <field name="mode">ptd_last_year</field>
+        <field name="period_type_id" ref="period_type_year"/>
+        <field name="sequence">40</field>
+    </record>
+
+</odoo>
