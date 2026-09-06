@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Catálogo de métricas relevado para FORUM (reportes R01 a R11).
+         Acá van los conceptos; el cálculo concreto y su estado están en
+         primate_metric_version.xml. -->
+
+    <!-- ===== Volumen y demanda (R01, R03, R04, R06) ===== -->
+    <record id="metric_boletas_pos" model="primate.metric">
+        <field name="name">Boletas vendidas (POS)</field>
+        <field name="code">forum_boletas_pos</field>
+        <field name="unit_type">count</field>
+        <field name="digits">0</field>
+        <field name="description">Cantidad de órdenes de punto de venta cerradas.
+            Es la lectura que permite desglosar por local, franja horaria y vendedor.</field>
+    </record>
+
+    <record id="metric_boletas_facturas" model="primate.metric">
+        <field name="name">Boletas vendidas (facturas)</field>
+        <field name="code">forum_boletas_facturas</field>
+        <field name="unit_type">count</field>
+        <field name="digits">0</field>
+        <field name="description">Lectura literal del catálogo: cantidad de asientos con
+            diario de tipo venta. Convive con la lectura POS hasta que se cierre el gap.</field>
+    </record>
+
+    <record id="metric_unidades" model="primate.metric">
+        <field name="name">Unidades vendidas</field>
+        <field name="code">forum_unidades</field>
+        <field name="unit_type">qty</field>
+    </record>
+
+    <record id="metric_ventas_totales" model="primate.metric">
+        <field name="name">Ventas totales</field>
+        <field name="code">forum_ventas_totales</field>
+        <field name="unit_type">money</field>
+        <field name="description">Importe vendido con impuestos incluidos.</field>
+    </record>
+
+    <record id="metric_ventas_sin_impuestos" model="primate.metric">
+        <field name="name">Ventas sin impuestos</field>
+        <field name="code">forum_ventas_sin_impuestos</field>
+        <field name="unit_type">money</field>
+        <field name="description">Lectura alternativa de "ventas totales", sin impuestos.
+            Existe porque el catálogo no define si el importe los incluye.</field>
+    </record>
+
+    <record id="metric_ventas_por_boleta" model="primate.metric">
+        <field name="name">Ventas promedio por boleta</field>
+        <field name="code">forum_ventas_por_boleta</field>
+        <field name="unit_type">money</field>
+    </record>
+
+    <record id="metric_unidades_por_boleta" model="primate.metric">
+        <field name="name">Unidades por boleta (UxB)</field>
+        <field name="code">forum_uxb</field>
+        <field name="unit_type">ratio</field>
+    </record>
+
+    <!-- ===== Devoluciones y descuentos ===== -->
+    <record id="metric_unidades_devueltas" model="primate.metric">
+        <field name="name">Unidades devueltas</field>
+        <field name="code">forum_unidades_devueltas</field>
+        <field name="unit_type">qty</field>
+    </record>
+
+    <record id="metric_descuento_promedio" model="primate.metric">
+        <field name="name">Descuento promedio</field>
+        <field name="code">forum_descuento_promedio</field>
+        <field name="unit_type">percent</field>
+    </record>
+
+    <!-- ===== Rentabilidad (R09, R10) ===== -->
+    <record id="metric_costo_ventas" model="primate.metric">
+        <field name="name">Costo de productos vendidos (COGS)</field>
+        <field name="code">forum_cogs</field>
+        <field name="unit_type">money</field>
+    </record>
+
+    <record id="metric_margen_bruto" model="primate.metric">
+        <field name="name">Margen bruto</field>
+        <field name="code">forum_margen_bruto</field>
+        <field name="unit_type">money</field>
+    </record>
+
+    <record id="metric_margen_pct" model="primate.metric">
+        <field name="name">Margen bruto (%)</field>
+        <field name="code">forum_margen_pct</field>
+        <field name="unit_type">percent</field>
+        <field name="display_factor">100</field>
+    </record>
+
+    <record id="metric_costo_promedio_producto" model="primate.metric">
+        <field name="name">Costo promedio del producto</field>
+        <field name="code">forum_costo_promedio</field>
+        <field name="unit_type">money</field>
+    </record>
+
+    <!-- ===== Inventario (R08) ===== -->
+    <record id="metric_stock_disponible" model="primate.metric">
+        <field name="name">Stock disponible</field>
+        <field name="code">forum_stock_disponible</field>
+        <field name="unit_type">qty</field>
+    </record>
+
+    <record id="metric_venta_promedio_diaria" model="primate.metric">
+        <field name="name">Venta promedio diaria</field>
+        <field name="code">forum_venta_promedio_diaria</field>
+        <field name="unit_type">qty</field>
+        <field name="description">Sin versión calculable: necesita dividir por la cantidad
+            de días del período, que el motor de la Fase 1 no modela como métrica.
+            Gaps G-36 y G-37.</field>
+    </record>
+
+    <record id="metric_dias_de_stock" model="primate.metric">
+        <field name="name">Días de stock</field>
+        <field name="code">forum_dias_de_stock</field>
+        <field name="unit_type">qty</field>
+        <field name="description">Sin versión calculable: depende de la venta promedio
+            diaria y su fórmula exacta no está cerrada. Gap G-35.</field>
+    </record>
+
+    <!-- ===== Conversión (R11) ===== -->
+    <record id="metric_visitantes" model="primate.metric">
+        <field name="name">Visitantes</field>
+        <field name="code">forum_visitantes</field>
+        <field name="unit_type">count</field>
+        <field name="digits">0</field>
+        <field name="description">Sin versión calculable: no existe fuente del dato en
+            Odoo. Gaps G-51 y G-52.</field>
+    </record>
+
+    <record id="metric_tasa_conversion" model="primate.metric">
+        <field name="name">Tasa de conversión</field>
+        <field name="code">forum_tasa_conversion</field>
+        <field name="unit_type">percent</field>
+        <field name="display_factor">100</field>
+        <field name="description">Sin versión calculable: depende de Visitantes.
+            Gaps G-53 y G-54.</field>
+    </record>
+
+    <!-- ===== Metas (R05, R07) — el cálculo es Fase 2, Sales Targets ===== -->
+    <record id="metric_meta_ventas_vendedor" model="primate.metric">
+        <field name="name">Meta de ventas por vendedor</field>
+        <field name="code">forum_meta_ventas_vendedor</field>
+        <field name="unit_type">money</field>
+        <field name="description">Declarada para trazabilidad del catálogo. El cálculo
+            corresponde a primate_sales_targets, que es Fase 2. Gap G-19.</field>
+    </record>
+
+    <record id="metric_meta_ventas_local" model="primate.metric">
+        <field name="name">Meta de ventas por local</field>
+        <field name="code">forum_meta_ventas_local</field>
+        <field name="unit_type">money</field>
+        <field name="description">Declarada para trazabilidad del catálogo. El cálculo
+            corresponde a primate_sales_targets, que es Fase 2. Gaps G-30 y G-32.</field>
+    </record>
+
+    <record id="metric_cumplimiento_meta" model="primate.metric">
+        <field name="name">Cumplimiento de meta (%)</field>
+        <field name="code">forum_cumplimiento_meta</field>
+        <field name="unit_type">percent</field>
+        <field name="description">Fase 2. Gaps G-20 y G-31.</field>
+    </record>
+
+    <record id="metric_brecha_meta" model="primate.metric">
+        <field name="name">Brecha contra la meta</field>
+        <field name="code">forum_brecha_meta</field>
+        <field name="unit_type">money</field>
+        <field name="description">Fase 2. Gaps G-20 y G-31.</field>
+    </record>
+
+</odoo>

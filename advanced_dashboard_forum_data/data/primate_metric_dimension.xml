@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Dimensiones reales de FORUM.
+
+         El "Local" es el hallazgo central del relevamiento: no existe un campo
+         canónico. El maestro es stock.warehouse (códigos 001 a 046); el POS lo
+         resuelve por su usuario de sucursal (hay uno por local) y la contabilidad
+         por el diario de venta. pos.config.warehouse_id NO sirve: las 69 cajas
+         apuntan a solo 6 almacenes dummy, uno por compañía. -->
+
+    <record id="dimension_local" model="primate.metric.dimension">
+        <field name="name">Local</field>
+        <field name="code">local</field>
+        <field name="sequence">10</field>
+        <field name="fact_column">warehouse_id</field>
+        <field name="model_name">stock.warehouse</field>
+        <field name="notes">El local se resuelve por el usuario de POS (uno por sucursal)
+            o por el diario de venta. Gaps G-01 y G-06.</field>
+    </record>
+    <record id="dimension_path_local_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">order_id.user_id.pad_local_id</field>
+    </record>
+    <record id="dimension_path_local_pos_order" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="source_model">pos.order</field>
+        <field name="field_path">user_id.pad_local_id</field>
+    </record>
+    <record id="dimension_path_local_move_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="source_model">account.move.line</field>
+        <field name="field_path">move_id.journal_id.pad_local_id</field>
+    </record>
+    <record id="dimension_path_local_move" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="source_model">account.move</field>
+        <field name="field_path">journal_id.pad_local_id</field>
+    </record>
+    <record id="dimension_path_local_quant" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="source_model">stock.quant</field>
+        <field name="field_path">location_id.warehouse_id</field>
+    </record>
+
+    <!-- El vendedor está en la LÍNEA de la orden de POS, en un campo llamado user_id
+         que apunta a hr.employee. No aplica a métricas de inventario. -->
+    <record id="dimension_vendedor" model="primate.metric.dimension">
+        <field name="name">Vendedor</field>
+        <field name="code">vendedor</field>
+        <field name="sequence">20</field>
+        <field name="fact_column">employee_id</field>
+        <field name="model_name">hr.employee</field>
+        <field name="notes">En POS el vendedor es pos.order.line.user_id, que apunta a
+            hr.employee. No existe para métricas de inventario.</field>
+    </record>
+    <record id="dimension_path_vendedor_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_vendedor"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">user_id</field>
+    </record>
+
+    <record id="dimension_equipo" model="primate.metric.dimension">
+        <field name="name">Equipo comercial</field>
+        <field name="code">equipo</field>
+        <field name="sequence">30</field>
+        <field name="fact_column">team_id</field>
+        <field name="model_name">crm.team</field>
+    </record>
+    <record id="dimension_path_equipo_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_equipo"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">order_id.crm_team_id</field>
+    </record>
+    <record id="dimension_path_equipo_move_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_equipo"/>
+        <field name="source_model">account.move.line</field>
+        <field name="field_path">move_id.team_id</field>
+    </record>
+
+    <record id="dimension_compania" model="primate.metric.dimension">
+        <field name="name">Compañía</field>
+        <field name="code">compania</field>
+        <field name="sequence">40</field>
+        <field name="fact_column">company_id</field>
+        <field name="model_name">res.company</field>
+        <field name="notes">Las seis compañías del grupo se agregan juntas; la dimensión
+            Local es la que distingue las sucursales.</field>
+    </record>
+    <record id="dimension_path_compania_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_compania"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">company_id</field>
+    </record>
+    <record id="dimension_path_compania_move_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_compania"/>
+        <field name="source_model">account.move.line</field>
+        <field name="field_path">company_id</field>
+    </record>
+    <record id="dimension_path_compania_quant" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_compania"/>
+        <field name="source_model">stock.quant</field>
+        <field name="field_path">company_id</field>
+    </record>
+
+    <!-- Subfamilia es la categoría del producto y familia es su categoría padre.
+         El árbol de categorías de FORUM tiene dos niveles útiles (27 raíces y 117
+         hijas), pero la jerarquía no está validada oficialmente: gap G-47. -->
+    <record id="dimension_subfamilia" model="primate.metric.dimension">
+        <field name="name">Subfamilia</field>
+        <field name="code">subfamilia</field>
+        <field name="sequence">50</field>
+        <field name="fact_column">categ_id</field>
+        <field name="model_name">product.category</field>
+        <field name="notes">Categoría directa del producto. Gaps G-14 y G-47.</field>
+    </record>
+    <record id="dimension_path_subfamilia_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_subfamilia"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">product_id.categ_id</field>
+    </record>
+    <record id="dimension_path_subfamilia_move_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_subfamilia"/>
+        <field name="source_model">account.move.line</field>
+        <field name="field_path">product_id.categ_id</field>
+    </record>
+    <record id="dimension_path_subfamilia_quant" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_subfamilia"/>
+        <field name="source_model">stock.quant</field>
+        <field name="field_path">product_id.categ_id</field>
+    </record>
+
+    <record id="dimension_familia" model="primate.metric.dimension">
+        <field name="name">Familia</field>
+        <field name="code">familia</field>
+        <field name="sequence">60</field>
+        <field name="fact_column">categ_parent_id</field>
+        <field name="model_name">product.category</field>
+        <field name="notes">Categoría padre del producto. Gap G-47.</field>
+    </record>
+    <record id="dimension_path_familia_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">product_id.categ_id.parent_id</field>
+    </record>
+    <record id="dimension_path_familia_move_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="source_model">account.move.line</field>
+        <field name="field_path">product_id.categ_id.parent_id</field>
+    </record>
+    <record id="dimension_path_familia_quant" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="source_model">stock.quant</field>
+        <field name="field_path">product_id.categ_id.parent_id</field>
+    </record>
+
+    <!-- Producto base es la plantilla; las variantes son product.product. FORUM no
+         tiene un campo propio de producto base: gaps G-25 y G-26. -->
+    <record id="dimension_producto_base" model="primate.metric.dimension">
+        <field name="name">Producto base</field>
+        <field name="code">producto_base</field>
+        <field name="sequence">70</field>
+        <field name="fact_column">product_tmpl_id</field>
+        <field name="model_name">product.template</field>
+        <field name="notes">Se asume la plantilla de producto como producto base.
+            Gaps G-25 y G-26.</field>
+    </record>
+    <record id="dimension_path_producto_base_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_producto_base"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">product_id.product_tmpl_id</field>
+    </record>
+    <record id="dimension_path_producto_base_move_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_producto_base"/>
+        <field name="source_model">account.move.line</field>
+        <field name="field_path">product_id.product_tmpl_id</field>
+    </record>
+    <record id="dimension_path_producto_base_quant" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_producto_base"/>
+        <field name="source_model">stock.quant</field>
+        <field name="field_path">product_id.product_tmpl_id</field>
+    </record>
+
+    <record id="dimension_variante" model="primate.metric.dimension">
+        <field name="name">Variante de producto</field>
+        <field name="code">variante</field>
+        <field name="sequence">80</field>
+        <field name="fact_column">product_id</field>
+        <field name="model_name">product.product</field>
+    </record>
+    <record id="dimension_path_variante_pos_line" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_variante"/>
+        <field name="source_model">pos.order.line</field>
+        <field name="field_path">product_id</field>
+    </record>
+    <record id="dimension_path_variante_quant" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_variante"/>
+        <field name="source_model">stock.quant</field>
+        <field name="field_path">product_id</field>
+    </record>
+
+    <!-- Dimensiones derivadas de la fecha. El día y la hora se calculan en el huso de
+         la compañía, no en UTC: sin eso el heatmap sale corrido tres horas. -->
+    <record id="dimension_franja" model="primate.metric.dimension">
+        <field name="name">Franja horaria</field>
+        <field name="code">franja</field>
+        <field name="sequence">90</field>
+        <field name="fact_column">hour_slot</field>
+        <field name="notes">Hora del día en el huso de la compañía. Los rangos de franja
+            del reporte R03 no están definidos: gaps G-09 y G-12. Por ahora el grano es
+            horario y el agrupamiento en franjas se hace en la visualización.</field>
+    </record>
+
+    <record id="dimension_dia_semana" model="primate.metric.dimension">
+        <field name="name">Día de la semana</field>
+        <field name="code">dia_semana</field>
+        <field name="sequence">100</field>
+        <field name="fact_column">weekday</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Métricas de desempeño por vendedor.
+
+         El problema que resuelven: en el POS el vendedor vive en la LÍNEA
+         (pos.order.line.user_id, que pese al nombre apunta a hr.employee) y la boleta
+         vive en la ORDEN. Por eso forum_boletas_pos, que cuenta pos.order, no puede
+         desglosarse por vendedor, y sin ese denominador tampoco existen el ticket
+         promedio ni las unidades por boleta a nivel vendedor (G-05/G-08).
+
+         La salida es contar la boleta desde la línea: cuántas órdenes DISTINTAS tocó
+         cada vendedor. El conteo de valores distintos es correcto acá porque una boleta
+         no puede abarcar varios días, que es la condición que pide el motor.
+
+         CONSECUENCIA A TENER PRESENTE: una boleta con líneas de tres vendedores cuenta
+         para los tres, así que la suma de "boletas atendidas" de todos los vendedores
+         es mayor que el total de boletas del local. No es un error: es atribución de
+         participación, y es lo que hace que numerador y denominador hablen de lo mismo
+         (las ventas del vendedor sobre las boletas en las que participó). Si el
+         criterio de negocio termina siendo "una boleta, un solo dueño", hay que crear
+         una versión nueva de estas métricas, no editar estas. -->
+
+    <record id="metric_boletas_vendedor" model="primate.metric">
+        <field name="name">Boletas atendidas</field>
+        <field name="code">forum_boletas_vendedor</field>
+        <field name="unit_type">count</field>
+        <field name="description">Cantidad de boletas distintas en las que participó el
+            vendedor. Una boleta con varios vendedores cuenta para cada uno.</field>
+    </record>
+
+    <record id="metric_venta_por_boleta_vendedor" model="primate.metric">
+        <field name="name">Venta por boleta atendida</field>
+        <field name="code">forum_venta_por_boleta_vendedor</field>
+        <field name="unit_type">money</field>
+        <field name="digits">2</field>
+        <field name="description">Cuánto aporta el vendedor, en promedio, por cada boleta
+            en la que participa. Es el ticket promedio leído a nivel vendedor.</field>
+    </record>
+
+    <record id="metric_uxb_vendedor" model="primate.metric">
+        <field name="name">Unidades por boleta atendida</field>
+        <field name="code">forum_uxb_vendedor</field>
+        <field name="unit_type">qty</field>
+        <field name="digits">2</field>
+        <field name="description">Unidades que coloca el vendedor, en promedio, por cada
+            boleta en la que participa.</field>
+    </record>
+
+    <!-- ============================ Versiones ============================ -->
+
+    <record id="version_boletas_vendedor" model="primate.metric.version">
+        <field name="metric_id" ref="metric_boletas_vendedor"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-05/G-08</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">pos.order.line</field>
+        <field name="date_field">order_id.date_order</field>
+        <field name="aggregation">count_distinct</field>
+        <field name="distinct_field">order_id</field>
+        <field name="domain">[('order_id.state', 'in', ['paid', 'done', 'invoiced'])]</field>
+        <field name="refund_treatment">include</field>
+        <field name="refund_field">refunded_orderline_id</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_vendedor'), ref('dimension_local'), ref('dimension_equipo'),
+            ref('dimension_compania'), ref('dimension_franja'),
+            ref('dimension_dia_semana')])]"/>
+        <field name="notes">Cuenta órdenes distintas desde la línea, que es lo que permite
+            cortar por vendedor. Provisoria hasta que se cierre G-05/G-08: falta confirmar
+            si una boleta compartida cuenta para todos sus vendedores o para uno solo.</field>
+    </record>
+
+    <record id="version_venta_por_boleta_vendedor" model="primate.metric.version">
+        <field name="metric_id" ref="metric_venta_por_boleta_vendedor"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-05/G-08</field>
+        <field name="calc_type">ratio</field>
+        <field name="ratio_mode">aggregate_divide</field>
+        <field name="numerator_version_id" ref="version_ventas_totales"/>
+        <field name="denominator_version_id" ref="version_boletas_vendedor"/>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_vendedor'), ref('dimension_local'),
+            ref('dimension_compania')])]"/>
+    </record>
+
+    <record id="version_uxb_vendedor" model="primate.metric.version">
+        <field name="metric_id" ref="metric_uxb_vendedor"/>
+        <field name="version">1</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-05/G-08</field>
+        <field name="calc_type">ratio</field>
+        <field name="ratio_mode">aggregate_divide</field>
+        <field name="numerator_version_id" ref="version_unidades"/>
+        <field name="denominator_version_id" ref="version_boletas_vendedor"/>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_vendedor'), ref('dimension_local'),
+            ref('dimension_compania')])]"/>
+    </record>
+
+</odoo>

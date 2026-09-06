@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Los cuatro dashboards del catálogo de FORUM.
+
+         Cada componente muestra UNA métrica: las tablas multi-métrica del catálogo
+         (familia x unidades x stock x días de stock) se arman con varias tablas
+         contiguas. La tabla multi-métrica queda como mejora para la Fase 2.
+
+         Los componentes cuya métrica todavía no tiene definición calculable (visitantes,
+         conversión, metas) se dejan puestos a propósito: muestran el aviso del motor y
+         así el gap queda visible en el dashboard en lugar de desaparecer. -->
+
+    <record id="filter_mes_vs_anio_anterior" model="primate.dashboard.filter">
+        <field name="name">Mes actual contra el año anterior</field>
+        <field name="period_type_id" ref="primate_advanced_dashboard.period_type_month"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <!-- ============ Dashboard 1 — Demanda, Volumen, Mix y Conversión ============ -->
+    <record id="dashboard_demanda" model="primate.dashboard">
+        <field name="name">Demanda, Volumen, Mix y Conversión</field>
+        <field name="code">forum_demanda</field>
+        <field name="sequence">10</field>
+        <field name="filter_id" ref="filter_mes_vs_anio_anterior"/>
+        <field name="description">Vista integral de la demanda comercial. Audiencia:
+            Dirección, Comercial, Operaciones. Reportes R01, R03, R04, R06 y R11.</field>
+    </record>
+
+    <record id="component_demanda_boletas" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Boletas</field>
+        <field name="sequence">10</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_boletas_pos"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_demanda_unidades" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Unidades</field>
+        <field name="sequence">20</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_unidades"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_demanda_ventas" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Ventas totales</field>
+        <field name="sequence">30</field>
+        <field name="component_type">kpi_comparative</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_demanda_ticket" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Ticket promedio</field>
+        <field name="sequence">40</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_ventas_por_boleta"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_demanda_ranking_local" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Ventas por local</field>
+        <field name="sequence">50</field>
+        <field name="component_type">ranking</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">10</field>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_demanda_tabla_local" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Boletas por local</field>
+        <field name="sequence">60</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_boletas_pos"/>
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">0</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <!-- Heatmap: adición al catálogo de componentes de la sección 9, pedida por R03. -->
+    <record id="component_demanda_heatmap" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Boletas por día y franja horaria</field>
+        <field name="sequence">70</field>
+        <field name="component_type">heatmap</field>
+        <field name="metric_id" ref="metric_boletas_pos"/>
+        <field name="dimension_id" ref="dimension_dia_semana"/>
+        <field name="column_dimension_id" ref="dimension_franja"/>
+        <field name="colspan">4</field>
+    </record>
+
+    <record id="component_demanda_mix_subfamilia" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Mix por subfamilia (unidades)</field>
+        <field name="sequence">80</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_unidades"/>
+        <field name="dimension_id" ref="dimension_subfamilia"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">20</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_demanda_ranking_producto" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Unidades por producto base</field>
+        <field name="sequence">90</field>
+        <field name="component_type">ranking</field>
+        <field name="metric_id" ref="metric_unidades"/>
+        <field name="dimension_id" ref="dimension_producto_base"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">15</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_demanda_visitantes" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Visitantes</field>
+        <field name="sequence">100</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_visitantes"/>
+    </record>
+
+    <record id="component_demanda_conversion" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_demanda"/>
+        <field name="name">Tasa de conversión</field>
+        <field name="sequence">110</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_tasa_conversion"/>
+    </record>
+
+    <!-- ============ Dashboard 2 — Gestión y Cumplimiento de Metas ============ -->
+    <record id="dashboard_metas" model="primate.dashboard">
+        <field name="name">Gestión y Cumplimiento de Metas</field>
+        <field name="code">forum_metas</field>
+        <field name="sequence">20</field>
+        <field name="filter_id" ref="filter_mes_vs_anio_anterior"/>
+        <field name="description">Reportes R05 y R07. El objetivo, el avance esperado y la
+            proyección corresponden a primate_sales_targets (Fase 2): acá está solo la
+            parte real, que es lo que la Fase 1 puede calcular.</field>
+    </record>
+
+    <record id="component_metas_ventas_vendedor" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_metas"/>
+        <field name="name">Ventas reales por vendedor</field>
+        <field name="sequence">10</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="dimension_id" ref="dimension_vendedor"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">25</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_metas_ventas_local" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_metas"/>
+        <field name="name">Ventas reales por local</field>
+        <field name="sequence">20</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">0</field>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_metas_uxb" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_metas"/>
+        <field name="name">Unidades por boleta</field>
+        <field name="sequence">30</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_unidades_por_boleta"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_prev_period"/>
+    </record>
+
+    <record id="component_metas_meta_local" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_metas"/>
+        <field name="name">Meta por local</field>
+        <field name="sequence">40</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_meta_ventas_local"/>
+    </record>
+
+    <record id="component_metas_cumplimiento" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_metas"/>
+        <field name="name">Cumplimiento de meta</field>
+        <field name="sequence">50</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_cumplimiento_meta"/>
+    </record>
+
+    <!-- ============ Dashboard 3 — Eficiencia Operativa e Inventario ============ -->
+    <record id="dashboard_inventario" model="primate.dashboard">
+        <field name="name">Eficiencia Operativa e Inventario</field>
+        <field name="code">forum_inventario</field>
+        <field name="sequence">30</field>
+        <field name="filter_id" ref="filter_mes_vs_anio_anterior"/>
+        <field name="description">Reporte R08. Cobertura de stock y riesgo de sobrestock o
+            quiebre. Audiencia: Operaciones, Supply Chain, Merchandising.</field>
+    </record>
+
+    <record id="component_inventario_stock_familia" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_inventario"/>
+        <field name="name">Stock disponible por familia</field>
+        <field name="sequence">10</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_stock_disponible"/>
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="row_limit">0</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_inventario_unidades_familia" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_inventario"/>
+        <field name="name">Unidades vendidas por familia</field>
+        <field name="sequence">20</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_unidades"/>
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">0</field>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_inventario_stock_local" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_inventario"/>
+        <field name="name">Stock disponible por local</field>
+        <field name="sequence">30</field>
+        <field name="component_type">ranking</field>
+        <field name="metric_id" ref="metric_stock_disponible"/>
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="row_limit">15</field>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_inventario_dias_stock" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_inventario"/>
+        <field name="name">Días de stock</field>
+        <field name="sequence">40</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_dias_de_stock"/>
+    </record>
+
+    <!-- ============ Dashboard 4 — Rentabilidad y Gobierno del Portafolio ============ -->
+    <record id="dashboard_rentabilidad" model="primate.dashboard">
+        <field name="name">Rentabilidad y Gobierno del Portafolio</field>
+        <field name="code">forum_rentabilidad</field>
+        <field name="sequence">40</field>
+        <field name="filter_id" ref="filter_mes_vs_anio_anterior"/>
+        <field name="description">Reportes R09 y R10. Desempeño comercial y financiero por
+            familia y producto base. Audiencia: Dirección, Comercial, Finanzas.</field>
+    </record>
+
+    <record id="component_rentabilidad_margen" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_rentabilidad"/>
+        <field name="name">Margen bruto</field>
+        <field name="sequence">10</field>
+        <field name="component_type">kpi_comparative</field>
+        <field name="metric_id" ref="metric_margen_bruto"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_rentabilidad_margen_pct" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_rentabilidad"/>
+        <field name="name">Margen bruto (%)</field>
+        <field name="sequence">20</field>
+        <field name="component_type">indicator</field>
+        <field name="metric_id" ref="metric_margen_pct"/>
+    </record>
+
+    <record id="threshold_margen_bajo" model="primate.dashboard.threshold">
+        <field name="component_id" ref="component_rentabilidad_margen_pct"/>
+        <field name="name">Margen bajo</field>
+        <field name="sequence">10</field>
+        <field name="has_lower_bound" eval="False"/>
+        <field name="value_to">20</field>
+        <field name="state">bad</field>
+    </record>
+
+    <record id="threshold_margen_medio" model="primate.dashboard.threshold">
+        <field name="component_id" ref="component_rentabilidad_margen_pct"/>
+        <field name="name">Margen a vigilar</field>
+        <field name="sequence">20</field>
+        <field name="value_from">20</field>
+        <field name="value_to">35</field>
+        <field name="state">warning</field>
+    </record>
+
+    <record id="threshold_margen_bueno" model="primate.dashboard.threshold">
+        <field name="component_id" ref="component_rentabilidad_margen_pct"/>
+        <field name="name">Margen saludable</field>
+        <field name="sequence">30</field>
+        <field name="value_from">35</field>
+        <field name="has_upper_bound" eval="False"/>
+        <field name="state">good</field>
+    </record>
+
+    <record id="component_rentabilidad_cogs" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_rentabilidad"/>
+        <field name="name">COGS</field>
+        <field name="sequence">30</field>
+        <field name="component_type">kpi_card</field>
+        <field name="metric_id" ref="metric_costo_ventas"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_rentabilidad_tabla_familia" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_rentabilidad"/>
+        <field name="name">Margen por familia</field>
+        <field name="sequence">40</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_margen_bruto"/>
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">0</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_rentabilidad_tabla_producto" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_rentabilidad"/>
+        <field name="name">Margen por producto base</field>
+        <field name="sequence">50</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_margen_bruto"/>
+        <field name="dimension_id" ref="dimension_producto_base"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">20</field>
+        <field name="colspan">2</field>
+    </record>
+
+    <record id="component_rentabilidad_ventas_familia" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_rentabilidad"/>
+        <field name="name">Ventas por familia</field>
+        <field name="sequence">60</field>
+        <field name="component_type">ranking</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">15</field>
+        <field name="colspan">2</field>
+    </record>
+
+</odoo>

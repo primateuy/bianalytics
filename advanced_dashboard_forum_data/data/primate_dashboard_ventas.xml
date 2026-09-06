@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Dashboard de arranque: las métricas básicas de venta, todas con comparativo
+         de período. Es el tablero pensado para operar con la barra de filtros —
+         cambiar el grano (día / semana ISO / mes / trimestre / año), navegar hacia
+         atrás y elegir contra qué comparar — que es lo que Odoo no resuelve de fábrica.
+
+         Solo usa métricas que hoy tienen hechos precalculados, así que muestra
+         números desde el primer momento. -->
+
+    <record id="filter_ventas_general" model="primate.dashboard.filter">
+        <field name="name">Mes en curso contra el año anterior</field>
+        <field name="period_type_id" ref="primate_advanced_dashboard.period_type_month"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="dashboard_ventas_general" model="primate.dashboard">
+        <field name="name">Ventas — visión general</field>
+        <field name="code">forum_ventas_general</field>
+        <field name="sequence">5</field>
+        <field name="filter_id" ref="filter_ventas_general"/>
+        <field name="description">Métricas básicas de venta con comparativo de período
+            dinámico: boletas, ticket promedio, ventas totales y unidades, más el
+            desglose por local y por vendedor.</field>
+    </record>
+
+    <!-- Fila de KPIs comparativos: valor del período, comparable y variación. -->
+    <record id="component_ventas_boletas" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_ventas_general"/>
+        <field name="name">Boletas</field>
+        <field name="sequence">10</field>
+        <field name="component_type">kpi_comparative</field>
+        <field name="metric_id" ref="metric_boletas_pos"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_ventas_ticket" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_ventas_general"/>
+        <field name="name">Ticket promedio</field>
+        <field name="sequence">20</field>
+        <field name="component_type">kpi_comparative</field>
+        <field name="metric_id" ref="metric_ventas_por_boleta"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_ventas_totales" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_ventas_general"/>
+        <field name="name">Ventas totales</field>
+        <field name="sequence">30</field>
+        <field name="component_type">kpi_comparative</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <record id="component_ventas_unidades" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_ventas_general"/>
+        <field name="name">Unidades</field>
+        <field name="sequence">40</field>
+        <field name="component_type">kpi_comparative</field>
+        <field name="metric_id" ref="metric_unidades"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+    </record>
+
+    <!-- Desgloses: la participación se calcula sobre las filas mostradas. -->
+    <record id="component_ventas_ranking_local" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_ventas_general"/>
+        <field name="name">Ventas por local</field>
+        <field name="sequence">50</field>
+        <field name="component_type">ranking</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">10</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+    <!-- Ventas y no ticket promedio: el ticket es ventas sobre boletas, y la boleta
+         vive en la orden mientras que el vendedor vive en la línea, así que ese ratio
+         no tiene un denominador único por vendedor. -->
+    <record id="component_ventas_tabla_vendedor" model="primate.dashboard.component">
+        <field name="dashboard_id" ref="dashboard_ventas_general"/>
+        <field name="name">Ventas por vendedor</field>
+        <field name="sequence">60</field>
+        <field name="component_type">table</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="dimension_id" ref="dimension_vendedor"/>
+        <field name="comparison_id"
+               ref="primate_advanced_dashboard.comparison_same_period_last_year"/>
+        <field name="row_limit">15</field>
+        <field name="show_share" eval="True"/>
+        <field name="colspan">2</field>
+    </record>
+
+</odoo>

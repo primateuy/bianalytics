@@ -1,0 +1,186 @@
+Advanced Dashboards — Datos FORUM (advanced_dashboard_forum_data)
+================================================================
+
+17.0.1.0.0 — 2026-08-31 — Carga inicial del catálogo
+----------------------------------------------------
+
+Carga del "Catálogo de Métricas y Dashboards — FORUM v1" sobre el motor de
+primate_advanced_dashboard. Este módulo no agrega capacidades: solo declara las
+dimensiones reales de FORUM y los datos del cliente.
+
+MAPEO DEL CONCEPTO "LOCAL"
+
+El relevamiento no tenía cerrado qué campo identifica al local. Verificado contra la
+base, conviven cinco representaciones y el maestro correcto es stock.warehouse con los
+códigos 001 a 046 (38 locales reales; quedan fuera los 5 almacenes dummy z_<Compañía>,
+A_Adm Central, A_Puerto Libre y CENTRO LOGISTICO).
+
+  - En POS el local se resuelve por pos.order.user_id: hay un usuario por sucursal
+    ("Usuario - Suc. X", 38 usuarios que mapean 1 a 1 con los 38 locales) y el vendedor
+    se loguea como empleado dentro de la sesión.
+  - pos.config.warehouse_id NO sirve: las 69 cajas apuntan a solo 6 almacenes dummy.
+  - En contabilidad el local se resuelve por el diario de venta (V001 a V046, 38 diarios
+    que mapean 1 a 1 con los locales).
+  - El campo de Studio account.journal.x_studio_cdigo_interno_sucursal, que había dejado
+    la integración con el proveedor de BI anterior, es redundante: en 40 de 42 diarios
+    coincide exactamente con el código del diario menos el prefijo. NO se usa.
+
+Se agrega pad_local_id (stock.warehouse) por herencia a res.users, account.journal y
+pos.config, y un post_init_hook lo siembra desde data/forum_local_map.csv (38 filas).
+Resultado de la carga: 38 usuarios, 38 diarios y 69 cajas mapeados.
+
+Casos sin local físico que quedan con la dimensión vacía:
+  - V000  Ventas - Forum Web (Fenicio)   → canal web
+  - V050  Ventas - OFICINA / x MAYOR     → mayorista
+  - V050F Ventas - A FRANQUICIAS         → franquicias
+  - fenv  Fenicio - A Eliminar           → diario muerto
+Corrección de dato aplicada en el mapeo: la caja "051 - PANDO 2 - CAJA 2" tiene un
+prefijo (051) que no existe como almacén; se apunta al local 029 (PANDO 2).
+
+DIMENSIONES DECLARADAS (10)
+
+  local, vendedor, equipo, compania, subfamilia, familia, producto_base, variante,
+  franja (hora del día) y dia_semana.
+
+  - El vendedor es pos.order.line.user_id, un campo mal nombrado del core que apunta a
+    hr.employee. Está a nivel de línea, no de orden. No se declara para métricas de
+    inventario, porque ahí el dato no existe.
+  - Subfamilia es la categoría directa del producto y familia su categoría padre. El
+    árbol de FORUM tiene dos niveles útiles (27 raíces, 117 hijas) pero la jerarquía no
+    está validada oficialmente (G-47).
+  - Producto base se asume como la plantilla de producto: FORUM no tiene un campo propio
+    (G-25, G-26).
+  - Se fija primate_advanced_dashboard.default_timezone = America/Montevideo, porque la
+    compañía FORUM (que concentra 52 de las 69 cajas) no tiene huso en su partner y sin
+    esto sus hechos se agrupaban en UTC, corriendo el heatmap tres horas.
+
+ESTADO DE CARGA DE LAS MÉTRICAS DEL CATÁLOGO
+
+22 métricas declaradas, 14 versiones cargadas.
+
+  CONFIRMADA (1) — no depende de ningún gap
+    forum_ventas_totales   Ventas totales (R07, la única fila "Definida" del catálogo
+                           que es una métrica; las otras cuatro filas "Definida" son
+                           comparativos, que ya vienen como dato del motor).
+
+  BORRADOR (13) — cargadas y usables, con su Gap ID para revisarlas en bloque
+    G-01/G-06  forum_boletas_pos          Boletas vendidas (POS)
+    G-01/G-06  forum_boletas_facturas     Boletas vendidas (facturas)
+    G-02       forum_ventas_sin_impuestos Ventas sin impuestos
+    G-02       forum_descuento_promedio   Descuento promedio
+    G-03       forum_ventas_por_boleta    Ventas promedio por boleta
+    G-05/G-08  forum_uxb                  Unidades por boleta
+    G-28       forum_unidades             Unidades vendidas
+    G-28       forum_unidades_devueltas   Unidades devueltas
+    G-39/G-40  forum_stock_disponible     Stock disponible
+    G-42       forum_costo_promedio       Costo promedio del producto
+    G-48       forum_cogs                 Costo de productos vendidos
+    G-48       forum_margen_bruto         Margen bruto
+    G-48       forum_margen_pct           Margen bruto (%)
+
+  SIN VERSIÓN CALCULABLE (8) — declaradas para trazabilidad, sin definición ejecutable
+    G-51/G-52  forum_visitantes                No existe fuente del dato en Odoo.
+    G-53/G-54  forum_tasa_conversion           Depende de Visitantes.
+    G-36/G-37  forum_venta_promedio_diaria     Necesita dividir por la cantidad de días
+                                               del período, que el motor de la Fase 1 no
+                                               modela como métrica.
+    G-35       forum_dias_de_stock             Depende de la venta promedio diaria.
+    G-19       forum_meta_ventas_vendedor      Sales Targets, Fase 2.
+    G-30/G-32  forum_meta_ventas_local         Sales Targets, Fase 2.
+    G-20/G-31  forum_cumplimiento_meta         Sales Targets, Fase 2.
+    G-20/G-31  forum_brecha_meta               Sales Targets, Fase 2.
+
+  Para listar lo que falta confirmar:
+    primate.metric.version con domain [('state','=','draft')]
+    o el filtro "Con gap abierto" de la vista de versiones.
+
+DESVIACIONES RESPECTO DEL CATÁLOGO, Y POR QUÉ
+
+  - R01 define la boleta como "Account Move con journal type = Sale", pero esa lectura no
+    admite franja horaria (la fecha es de tipo date) ni vendedor (no está en la factura).
+    Se cargaron las DOS lecturas como métricas separadas, ambas en borrador con el mismo
+    Gap ID, para que el cierre del gap elija sin perder ninguna.
+  - "Unidades por boleta" no se ofrece desglosada por vendedor: el vendedor está en la
+    línea y la boleta en la orden, así que una boleta con líneas de varios vendedores no
+    tiene un denominador único. Falta criterio de negocio (G-05, G-08).
+  - "Participación (%)" no se cargó como métrica: es una opción de los componentes de
+    Ranking y Tabla, porque es una lectura de la misma métrica dentro del corte.
+  - El margen y el COGS salen del POS, que tiene total_cost y margin nativos. Del lado de
+    facturas no hay campo de costo (sale_margin no está instalado), así que G-48 es un
+    gap técnico además de un gap de definición.
+
+DASHBOARDS CARGADOS (4, con 26 componentes)
+
+  forum_demanda        Demanda, Volumen, Mix y Conversión — 11 componentes
+                       (incluye el Heatmap día x franja horaria, que es la adición al
+                       catálogo de la sección 9 pedida por R03)
+  forum_metas          Gestión y Cumplimiento de Metas — 5 componentes
+                       (solo la parte real; el objetivo es Fase 2)
+  forum_inventario     Eficiencia Operativa e Inventario — 4 componentes
+  forum_rentabilidad   Rentabilidad y Gobierno del Portafolio — 6 componentes
+
+Los componentes cuya métrica todavía no tiene definición calculable se dejaron puestos a
+propósito: muestran el aviso del motor, así el gap queda visible en el dashboard en lugar
+de desaparecer. Son 5 en total (2 en demanda, 2 en metas, 1 en inventario).
+
+DATOS DE PRUEBA
+
+scripts/seed_demo_pos_data.py genera órdenes de POS sintéticas sobre los maestros reales,
+cubriendo 14 meses para que los comparativos interanuales y de semana ISO tengan contra
+qué comparar. La base local tiene los maestros completos pero casi nada transaccional
+(2 facturas y 2 órdenes de POS antes de sembrar).
+
+scripts/borrar_demo_pos_data.py revierte todo (identifica lo generado por la marca
+PAD-DEMO). No son datos del módulo: son herramientas de desarrollo y no se cargan en la
+instalación.
+
+QUÉ FALTA CUANDO SE RETOME
+  - Cerrar los 8 gaps que hoy dejan 13 métricas en borrador, y crear una versión nueva de
+    cada métrica afectada en lugar de editar la v1 en el lugar.
+  - Definir los rangos de franja horaria de R03 (G-09, G-12). Hoy el grano es horario y
+    el agrupamiento en franjas queda para la visualización.
+  - Validar la jerarquía familia / subfamilia (G-47).
+  - Resolver el origen de Visitantes (G-51, G-52) para habilitar la conversión.
+  - Fase 2 (Sales Targets) para que el Dashboard 2 tenga sentido operativo.
+
+
+17.0.1.0.1 — 2026-09-05 — Datos de prueba de inventario
+--------------------------------------------------------
+
+scripts/seed_demo_stock_data.py genera movimientos de stock sintéticos, porque el demo
+de POS no generaba ninguno: la base tenía 33 quants y 29 movimientos, todos de la
+última semana, y con eso no se puede validar nada de inventario.
+
+  - 5.911 movimientos entre el 12/07/2025 y el 05/09/2026, repartidos por quincena.
+  - 8 locales, elegidos por el orden natural del modelo: 041 ATLANTICO SHOPPING,
+    042 CARMELO, 019 CANELONES (Faringol SA), 002 CENTRO, 046 NUEVO CENTRO,
+    014 COLON (Neratur SA), 034 COLONIA y 012 CORDON (Gaimta SRL). Son de cuatro
+    compañías distintas a propósito, para que el corte multiempresa quede cubierto.
+  - 45 productos almacenables, 374 quants resultantes y ningún saldo negativo: el
+    script lleva el saldo simulado y solo vende contra existencia.
+  - Odoo pisa la fecha del movimiento al validarlo, así que la fecha histórica se
+    fuerza después del _action_done(), en el movimiento y en sus líneas.
+
+Se revierte con scripts/borrar_demo_stock_data.py.
+
+QUÉ DEMUESTRAN ESTOS DATOS SOBRE LA MÉTRICA DE STOCK
+
+Con historia real disponible, el defecto de forum_stock_disponible queda a la vista.
+El saldo verdadero, reconstruido desde los movimientos, evoluciona mes a mes:
+
+    2025-07  51.043      2025-11  18.915      2026-04  18.208
+    2025-08  36.054      2025-12  18.538      2026-06  17.406
+    2025-09  27.214      2026-01  18.133      2026-08  19.049
+    2025-10  22.846      2026-02  18.751      2026-09  18.117
+
+Pero la métrica lee stock.quant imputando cada saldo a su write_date, y 361 de los 374
+quants tienen write_date de hoy. La serie que produciría es una línea en cero con un
+único pico en el día de la última escritura: no refleja nada de esa curva.
+
+La reconstrucción sí funciona y está probada: el mecanismo to_date del core
+(addons/stock/models/product.py) parte del saldo actual y le resta los movimientos
+posteriores a la fecha pedida. Sobre ATLANTICO SHOPPING da 4.778 unidades al cierre de
+agosto de 2025 contra 2.424 al cierre de agosto de 2026, un -49,3 % interanual.
+
+Queda pendiente llevar eso a una tabla de saldos propia; ver la propuesta de grano
+producto base x almacén con snapshot semanal.
