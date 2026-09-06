@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============ Métrica ============ -->
+    <record id="view_primate_metric_tree" model="ir.ui.view">
+        <field name="name">primate.metric.tree</field>
+        <field name="model">primate.metric</field>
+        <field name="arch" type="xml">
+            <tree string="Métricas">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="unit_type"/>
+                <field name="version_count"/>
+                <field name="draft_version_count"
+                       decoration-warning="draft_version_count > 0"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_form" model="ir.ui.view">
+        <field name="name">primate.metric.form</field>
+        <field name="model">primate.metric</field>
+        <field name="arch" type="xml">
+            <form string="Métrica">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_versions" type="object"
+                                class="oe_stat_button" icon="fa-code-fork">
+                            <field name="version_count" widget="statinfo" string="Versiones"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ventas totales"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="unit_type"/>
+                            <field name="digits"/>
+                            <field name="display_factor"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                            <field name="draft_version_count"/>
+                        </group>
+                    </group>
+                    <field name="description" placeholder="Definición del concepto de negocio"/>
+                    <notebook>
+                        <page string="Versiones" name="versions">
+                            <field name="version_ids" context="{'default_metric_id': id}">
+                                <tree string="Versiones">
+                                    <field name="version"/>
+                                    <field name="company_id"/>
+                                    <field name="calc_type"/>
+                                    <field name="source_model"/>
+                                    <field name="aggregation"/>
+                                    <field name="gap_ref"/>
+                                    <field name="fact_count"/>
+                                    <field name="state"
+                                           decoration-warning="state == 'draft'"
+                                           decoration-success="state == 'confirmed'"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_search" model="ir.ui.view">
+        <field name="name">primate.metric.search</field>
+        <field name="model">primate.metric</field>
+        <field name="arch" type="xml">
+            <search string="Métricas">
+                <field name="name"/>
+                <field name="code"/>
+                <filter name="filter_has_draft" string="Con versión en borrador"
+                        domain="[('version_ids.state', '=', 'draft')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_unit" string="Unidad de medida"
+                            context="{'group_by': 'unit_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============ Versión de métrica ============ -->
+    <record id="view_primate_metric_version_tree" model="ir.ui.view">
+        <field name="name">primate.metric.version.tree</field>
+        <field name="model">primate.metric.version</field>
+        <field name="arch" type="xml">
+            <tree string="Versiones de métrica">
+                <field name="metric_id"/>
+                <field name="version"/>
+                <field name="company_id"/>
+                <field name="calc_type"/>
+                <field name="source_model"/>
+                <field name="aggregation"/>
+                <field name="refund_treatment"/>
+                <field name="gap_ref"/>
+                <field name="fact_count"/>
+                <field name="state"
+                       decoration-warning="state == 'draft'"
+                       decoration-success="state == 'confirmed'"
+                       decoration-muted="state == 'archived'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_version_form" model="ir.ui.view">
+        <field name="name">primate.metric.version.form</field>
+        <field name="model">primate.metric.version</field>
+        <field name="arch" type="xml">
+            <form string="Versión de métrica">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmar"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_new_version" type="object" string="Nueva versión"
+                            invisible="state == 'draft'"/>
+                    <button name="action_archive_version" type="object" string="Archivar"
+                            invisible="state == 'archived'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="metric_id" options="{'no_create': True}"/>
+                            <span> · v</span><field name="version" class="oe_inline"/>
+                        </h1>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'draft' or not gap_ref">
+                        Definición provisoria: depende del gap
+                        <field name="gap_ref" class="oe_inline" readonly="1"/>.
+                    </div>
+                    <group>
+                        <group string="Alcance">
+                            <field name="company_id"
+                                   options="{'no_create': True}"
+                                   readonly="state == 'confirmed'"/>
+                            <field name="gap_ref" readonly="state == 'confirmed'"/>
+                        </group>
+                        <group string="Tipo de cálculo">
+                            <field name="calc_type" readonly="state == 'confirmed'"/>
+                            <field name="ratio_mode" invisible="calc_type != 'ratio'"
+                                   readonly="state == 'confirmed'"/>
+                        </group>
+                    </group>
+                    <group string="Origen" invisible="calc_type == 'ratio'">
+                        <group>
+                            <field name="source_model" placeholder="pos.order.line"
+                                   readonly="state == 'confirmed'"/>
+                            <field name="date_field" placeholder="order_id.date_order"
+                                   readonly="state == 'confirmed'"/>
+                            <field name="aggregation" readonly="state == 'confirmed'"/>
+                        </group>
+                        <group>
+                            <field name="value_field" placeholder="qty"
+                                   invisible="aggregation in ('count', 'count_distinct')"
+                                   readonly="state == 'confirmed'"/>
+                            <field name="distinct_field" placeholder="order_id"
+                                   invisible="aggregation != 'count_distinct'"
+                                   readonly="state == 'confirmed'"/>
+                            <field name="domain" widget="char"
+                                   readonly="state == 'confirmed'"/>
+                        </group>
+                    </group>
+                    <group string="Componentes del ratio" invisible="calc_type != 'ratio'">
+                        <field name="numerator_version_id" readonly="state == 'confirmed'"/>
+                        <field name="denominator_version_id" readonly="state == 'confirmed'"/>
+                    </group>
+                    <group string="Devoluciones" invisible="calc_type == 'ratio'">
+                        <field name="refund_treatment" readonly="state == 'confirmed'"/>
+                        <field name="refund_field" placeholder="refunded_orderline_id"
+                               invisible="refund_treatment == 'include'"
+                               readonly="state == 'confirmed'"/>
+                    </group>
+                    <notebook>
+                        <page string="Dimensiones permitidas" name="dimensions">
+                            <field name="dimension_ids" widget="many2many_tags"/>
+                            <p class="text-muted">
+                                Dimensiones por las que esta métrica puede desglosarse.
+                                Una métrica de inventario, por ejemplo, no admite vendedor.
+                            </p>
+                        </page>
+                        <page string="Notas" name="notes">
+                            <field name="notes" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_version_search" model="ir.ui.view">
+        <field name="name">primate.metric.version.search</field>
+        <field name="model">primate.metric.version</field>
+        <field name="arch" type="xml">
+            <search string="Versiones de métrica">
+                <field name="metric_id"/>
+                <field name="gap_ref"/>
+                <field name="source_model"/>
+                <filter name="filter_draft" string="Borrador" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_confirmed" string="Confirmadas"
+                        domain="[('state', '=', 'confirmed')]"/>
+                <separator/>
+                <filter name="filter_with_gap" string="Con gap abierto"
+                        domain="[('gap_ref', '!=', False)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_gap" string="Gap" context="{'group_by': 'gap_ref'}"/>
+                    <filter name="group_company" string="Compañía"
+                            context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_primate_metric" model="ir.actions.act_window">
+        <field name="name">Métricas</field>
+        <field name="res_model">primate.metric</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_primate_metric_version" model="ir.actions.act_window">
+        <field name="name">Versiones de métrica</field>
+        <field name="res_model">primate.metric.version</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

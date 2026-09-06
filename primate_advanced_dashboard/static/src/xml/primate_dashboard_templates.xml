@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="primate_advanced_dashboard.DashboardView">
+        <div class="pad_dashboard o_action">
+            <div t-if="isFirstLoad" class="pad_loading">
+                <span>Calculando métricas…</span>
+            </div>
+            <div t-elif="state.error" class="alert alert-danger m-3" role="alert">
+                <t t-esc="state.error"/>
+            </div>
+            <div t-else="" class="pad_dashboard_body">
+                <div class="pad_header">
+                    <h2 t-esc="state.dashboard.name"/>
+                    <span class="pad_range">
+                        <t t-esc="state.dashboard.date_from"/> — <t t-esc="state.dashboard.date_to"/>
+                    </span>
+                </div>
+
+                <!-- Barra de filtros: el período y el comparativo se eligen acá y el
+                     motor recalcula todo el tablero, incluido el período comparable.
+                     La barra no calcula nada, solo manda la elección al backend. -->
+                <div class="pad_filterbar">
+                    <div class="pad_filter_group">
+                        <label class="pad_filter_label" for="pad_period_type">Período</label>
+                        <select id="pad_period_type" class="pad_select"
+                                t-on-change="(ev) => this.onPeriodTypeChange(ev)">
+                            <option t-foreach="state.dashboard.options.period_types"
+                                    t-as="period" t-key="period.id"
+                                    t-att-value="period.id"
+                                    t-att-selected="period.id === state.dashboard.period_type_id"
+                                    t-esc="period.name"/>
+                        </select>
+                    </div>
+
+                    <div t-if="!isCustomPeriod" class="pad_filter_group pad_nav">
+                        <button class="btn btn-light pad_nav_btn" title="Período anterior"
+                                t-on-click="() => this.shiftPeriod(-1)">‹</button>
+                        <span class="pad_nav_label" t-esc="state.dashboard.period_label"/>
+                        <button class="btn btn-light pad_nav_btn" title="Período siguiente"
+                                t-att-disabled="!canGoForward"
+                                t-on-click="() => this.shiftPeriod(1)">›</button>
+                    </div>
+
+                    <div t-if="isCustomPeriod" class="pad_filter_group">
+                        <label class="pad_filter_label" for="pad_date_from">Desde</label>
+                        <input id="pad_date_from" type="date" class="pad_input"
+                               t-att-value="state.dateFrom"
+                               t-on-change="(ev) => this.onDateChange('dateFrom', ev)"/>
+                        <label class="pad_filter_label" for="pad_date_to">Hasta</label>
+                        <input id="pad_date_to" type="date" class="pad_input"
+                               t-att-value="state.dateTo"
+                               t-on-change="(ev) => this.onDateChange('dateTo', ev)"/>
+                    </div>
+
+                    <div class="pad_filter_group">
+                        <label class="pad_filter_label" for="pad_comparison">Comparar contra</label>
+                        <select id="pad_comparison" class="pad_select"
+                                t-on-change="(ev) => this.onComparisonChange(ev)">
+                            <option value=""
+                                    t-att-selected="!state.dashboard.comparison_id">Sin comparativo</option>
+                            <option t-foreach="state.dashboard.options.comparisons"
+                                    t-as="comparison" t-key="comparison.id"
+                                    t-att-value="comparison.id"
+                                    t-att-selected="comparison.id === state.dashboard.comparison_id"
+                                    t-esc="comparison.name"/>
+                        </select>
+                    </div>
+
+                    <span t-if="state.loading" class="pad_busy">Recalculando…</span>
+                </div>
+
+                <div class="pad_grid" t-att-class="{ pad_grid_busy: state.loading }">
+                    <div t-foreach="state.dashboard.components" t-as="component"
+                         t-key="component.id"
+                         class="pad_cell"
+                         t-attf-style="grid-column: span {{ component.colspan or 1 }};">
+                        <div t-if="component.error" class="alert alert-warning" role="alert">
+                            <strong t-esc="component.name"/>: <t t-esc="component.error"/>
+                        </div>
+                        <t t-else="" t-component="componentClass(component)"
+                           component="component"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+    <!-- Marca de definición provisoria: se muestra en todos los componentes cuya
+         métrica todavía depende de un gap abierto. -->
+    <t t-name="primate_advanced_dashboard.DraftBadge">
+        <span t-if="props.component.metric_state === 'draft'" class="pad_draft_badge"
+              t-attf-title="Definición provisoria{{ props.component.gap_ref ? ' — ' + props.component.gap_ref : '' }}">
+            borrador
+        </span>
+    </t>
+
+    <t t-name="primate_advanced_dashboard.KpiCard">
+        <div class="pad_card pad_kpi">
+            <div class="pad_card_title">
+                <t t-esc="props.component.name"/>
+                <t t-call="primate_advanced_dashboard.DraftBadge"/>
+            </div>
+            <div class="pad_kpi_value" t-esc="formatted"/>
+            <div t-if="props.component.has_comparison" t-attf-class="pad_kpi_variation {{ variationClass }}">
+                <t t-esc="formatPercent(variation)"/>
+                <span class="pad_kpi_variation_label" t-esc="props.component.comparison_name"/>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="primate_advanced_dashboard.KpiComparative">
+        <div class="pad_card pad_kpi_comparative">
+            <div class="pad_card_title">
+                <t t-esc="props.component.name"/>
+                <t t-call="primate_advanced_dashboard.DraftBadge"/>
+            </div>
+            <div class="pad_kpi_value" t-esc="formatValue(row.value)"/>
+            <table class="pad_compare_table">
+                <tr>
+                    <td>Comparable</td>
+                    <td class="pad_num" t-esc="formatValue(row.comparable)"/>
+                </tr>
+                <tr>
+                    <td>Diferencia</td>
+                    <td class="pad_num" t-esc="formatValue(row.variation)"/>
+                </tr>
+                <tr>
+                    <td>Variación</td>
+                    <td t-attf-class="pad_num {{ variationClass }}"
+                        t-esc="formatPercent(row.variation_percent)"/>
+                </tr>
+            </table>
+            <div class="pad_compare_period">
+                <t t-esc="props.component.comparable_from"/> — <t t-esc="props.component.comparable_to"/>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="primate_advanced_dashboard.Ranking">
+        <div class="pad_card pad_ranking">
+            <div class="pad_card_title">
+                <t t-esc="props.component.name"/>
+                <t t-call="primate_advanced_dashboard.DraftBadge"/>
+            </div>
+            <ol class="pad_ranking_list">
+                <li t-foreach="rows" t-as="row" t-key="row_index">
+                    <span class="pad_ranking_label" t-esc="row.label"/>
+                    <span class="pad_ranking_value" t-esc="formatValue(row.value)"/>
+                    <span t-if="props.component.has_comparison"
+                          t-attf-class="pad_ranking_variation {{ row.variation_percent >= 0 ? 'pad_positive' : 'pad_negative' }}"
+                          t-esc="formatPercent(row.variation_percent)"/>
+                </li>
+            </ol>
+            <div t-if="!rows.length" class="pad_empty">Sin datos en el período.</div>
+        </div>
+    </t>
+
+    <t t-name="primate_advanced_dashboard.DataTable">
+        <div class="pad_card pad_table">
+            <div class="pad_card_title">
+                <t t-esc="props.component.name"/>
+                <t t-call="primate_advanced_dashboard.DraftBadge"/>
+            </div>
+            <div class="pad_table_scroll">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Detalle</th>
+                            <th class="pad_num">Valor</th>
+                            <th t-if="props.component.has_comparison" class="pad_num">Comparable</th>
+                            <th t-if="props.component.has_comparison" class="pad_num">Variación</th>
+                            <th t-if="props.component.show_share" class="pad_num">Part. %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="rows" t-as="row" t-key="row_index">
+                            <td t-esc="row.label"/>
+                            <td class="pad_num" t-esc="formatValue(row.value)"/>
+                            <td t-if="props.component.has_comparison" class="pad_num"
+                                t-esc="formatValue(row.comparable)"/>
+                            <td t-if="props.component.has_comparison"
+                                t-attf-class="pad_num {{ row.variation_percent >= 0 ? 'pad_positive' : 'pad_negative' }}"
+                                t-esc="formatPercent(row.variation_percent)"/>
+                            <td t-if="props.component.show_share" class="pad_num"
+                                t-esc="formatPercent(row.share)"/>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div t-if="!rows.length" class="pad_empty">Sin datos en el período.</div>
+        </div>
+    </t>
+
+    <t t-name="primate_advanced_dashboard.Indicator">
+        <div t-attf-class="pad_card pad_indicator {{ stateClass }}">
+            <div class="pad_card_title">
+                <t t-esc="props.component.name"/>
+                <t t-call="primate_advanced_dashboard.DraftBadge"/>
+            </div>
+            <div class="pad_kpi_value" t-esc="formatted"/>
+            <div t-if="props.component.threshold and props.component.threshold.name"
+                 class="pad_indicator_label" t-esc="props.component.threshold.name"/>
+        </div>
+    </t>
+
+    <t t-name="primate_advanced_dashboard.Heatmap">
+        <div class="pad_card pad_heatmap">
+            <div class="pad_card_title">
+                <t t-esc="props.component.name"/>
+                <t t-call="primate_advanced_dashboard.DraftBadge"/>
+            </div>
+            <div class="pad_table_scroll">
+                <table class="pad_heatmap_table">
+                    <thead>
+                        <tr>
+                            <th t-esc="props.component.row_label"/>
+                            <th t-foreach="matrix.columns" t-as="column" t-key="column.key"
+                                class="pad_num" t-esc="column.label"/>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="matrix.rows" t-as="row" t-key="row_index">
+                            <th t-esc="row.label"/>
+                            <td t-foreach="row.cells" t-as="cell" t-key="cell_index"
+                                class="pad_heatmap_cell"
+                                t-att-style="cellStyle(cell.intensity)"
+                                t-att-title="cell.formatted"
+                                t-esc="cell.formatted"/>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div t-if="!matrix.rows.length" class="pad_empty">Sin datos en el período.</div>
+        </div>
+    </t>
+
+</templates>

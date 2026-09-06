@@ -1,0 +1,140 @@
+Advanced Dashboards — PrimateUY (primate_advanced_dashboard)
+============================================================
+
+17.0.1.0.0 — 2026-08-31 — Fase 1 completa
+-----------------------------------------
+
+Implementación de la Fase 1 de la especificación "Advanced Dashboards + Sales Targets +
+Sagui Dashboards" (versión 2, sección 27).
+
+QUÉ SE IMPLEMENTÓ
+
+Motor de métricas (sección 5)
+  - primate.metric: concepto de negocio estable, con unidad de medida, decimales y
+    factor de escala de lectura.
+  - primate.metric.version: definición del cálculo, versionada e inmutable una vez
+    confirmada. Al editar una versión confirmada hay que crear una nueva; los
+    consumidores existentes siguen apuntando a la versión con la que se construyeron
+    (5.3). Cada versión congela su modo de cálculo.
+  - Modo de cálculo de ratios configurable, con "agregado y dividir" por defecto (5.1).
+  - Override por compañía sobre una definición base compartida (5.2): la resolución
+    prioriza la versión de la compañía activa, y dentro de cada grupo la última
+    confirmada; si no hay ninguna confirmada usa la última en borrador, para que un
+    catálogo provisorio sea usable antes de cerrar sus gaps.
+  - Tratamiento de devoluciones configurable (incluir / excluir / solo devoluciones),
+    validando que el campo usado sea almacenado y por lo tanto filtrable.
+  - primate.metric.dimension: catálogo de dimensiones con su ruta de resolución por
+    modelo origen, admitiendo rutas con puntos.
+
+Motor de precálculo (sección 7)
+  - primate.metric.fact: agregado diario por métrica x dimensión, con columnas typadas
+    por dimensión e índice compuesto (versión, fecha). Los dashboards leen siempre de
+    acá y nunca de los modelos transaccionales.
+  - Los ratios en modo "agregado y dividir" no guardan hechos propios: se resuelven en
+    lectura dividiendo los agregados de numerador y denominador, que es el criterio
+    correcto al desglosar o filtrar. En modo "promedio de filas" sí guardan hechos.
+  - primate.metric.fact.run: auditoría de cada corrida (origen, rango, cantidad de
+    hechos, duración, usuario, error).
+  - Cron diario incremental sobre una ventana de 7 días, para absorber correcciones
+    retroactivas recientes. Se instala DESACTIVADO a propósito.
+  - Wizard de recálculo (backfill) para rehacer un rango histórico arbitrario. Esto
+    resuelve el punto que la sección 7 dejaba pendiente sobre correcciones de datos
+    históricos.
+  - El día y la hora de cada hecho se resuelven en el huso de la compañía, con orden
+    determinístico: huso de la compañía, luego el parámetro de sistema
+    primate_advanced_dashboard.default_timezone, luego UTC. Deliberadamente NO se usa el
+    huso del usuario que ejecuta: el mismo precálculo tiene que dar el mismo resultado
+    lo corra el cron, un backfill manual o un test.
+
+Motor de comparativos (sección 6)
+  - primate.period.type: día, semana ISO, mes, trimestre, año y rango libre. La semana
+    ISO está desde la Fase 1 (6.1) y compara por número de semana, no por fecha
+    calendario. El modelo queda abierto a incorporar zafras agregando un código nuevo.
+  - primate.comparison: período anterior, mismo período del año anterior, y acumulado
+    del período (MTD / YTD) contra el año anterior.
+  - Variación absoluta y porcentual, devolviendo None en el porcentaje cuando el
+    comparable es cero para que la vista muestre N/D en lugar de un crecimiento infinito.
+
+Filtros y componentes (secciones 8 y 9)
+  - primate.dashboard.filter: período, compañía, local, equipo, vendedor, categoría,
+    producto y variante. El filtro afecta a la vez al período actual y al comparable.
+  - primate.dashboard.component con seis tipos: KPI Card, KPI comparativo, Ranking,
+    Tabla, Indicador (con umbrales y semáforo) y Heatmap.
+  - Participación porcentual como opción de Ranking y Tabla, calculada sobre el total
+    del desglose. No es una métrica aparte sino una lectura de la misma métrica dentro
+    del corte, que es lo que pide el catálogo de FORUM en R03, R04 y R06.
+  - Capa visual en OWL 2, que solo pinta el payload ya calculado por Python. Los
+    componentes muestran una marca "borrador" cuando su métrica sigue atada a un gap.
+
+Arquitectura (secciones 3.1 y 10)
+  - Toda la lógica vive en modelos y métodos Python. No hay cálculo en XML ni en JS: la
+    capa visual es reconstruible sin tocar el motor.
+  - primate.metric.engine es el único punto de entrada de cálculo y ya expone la
+    superficie que la Fase 3 va a formalizar como API (get_available_metrics,
+    create_metric, compute, compute_with_comparison, compute_matrix).
+  - Las etiquetas de los valores de dimensión se resuelven con sudo: quien puede ver un
+    dashboard tiene que poder leer las etiquetas del desglose aunque no pertenezca a los
+    grupos de Inventario o de RRHH. El acceso a la tabla de hechos y a los dashboards
+    sigue sujeto a los permisos y a las reglas de registro del usuario.
+
+FUERA DE ALCANCE DE ESTA FASE (por definición de la tarea)
+  - Sales Targets (Fase 2): objetivos, objetivo vs real con N/D, avance esperado y
+    proyección. Los modelos de esta fase no los contemplan; se agregan encima.
+  - API de acciones para agentes (Fase 3). La superficie de operaciones ya está separada,
+    pero no está formalizada ni expuesta.
+  - Sagui Dashboards (Fase 4).
+  - Ajuste de comparativos por calendario irregular y zafras (6.1, etapa posterior).
+  - Curvas de objetivo y proyección (secciones 17 y 18, pertenecen a Sales Targets).
+
+LIMITACIONES CONOCIDAS
+  - Un componente muestra una sola métrica. Las tablas multi-métrica del catálogo de
+    FORUM (familia x unidades x stock x días de stock) se arman con varias tablas
+    contiguas. La tabla multi-métrica queda como mejora.
+  - La agregación "conteo de valores distintos" solo es correcta cuando la entidad
+    contada no puede abarcar varios días (una boleta, por ejemplo). Para un conteo de
+    clientes distintos en un rango, sumar los distintos de cada día duplica.
+  - El precálculo recorre los registros transaccionales en Python para poder resolver
+    dimensiones por rutas con puntos. Funciona bien en la ventana incremental diaria;
+    un backfill de todo el histórico de FORUM conviene correrlo fuera de horario.
+  - No hay columna de marca en la tabla de hechos: la especificación la deja
+    condicionada a que exista el concepto, y en FORUM hay solo dos marcas cargadas.
+  - El stock es un saldo, no un flujo. El hecho diario refleja el quant al momento de su
+    última escritura y no un snapshot por día; una serie histórica real de stock
+    necesita un snapshot diario propio.
+
+PENDIENTE DE DEFINIR CON EL EQUIPO
+  - Criterios de aceptación por fase (sección 31).
+  - Internacionalización de las etiquetas si el producto se ofrece fuera de Uruguay.
+
+
+17.0.1.1.0 — 2026-09-05 — Comparativo de períodos manejable desde la pantalla
+------------------------------------------------------------------------------
+
+El motor de comparativos existía desde la Fase 1, pero la vista pedía el payload sin
+argumentos y por lo tanto siempre mostraba el filtro guardado en el registro: no había
+forma de cambiar el período desde la interfaz. Esto lo resuelve, que es el problema
+concreto que Odoo no cubre de fábrica en sus dashboards.
+
+  - get_dashboard_data acepta ahora period_type_id, period_offset y comparison_id
+    además del rango explícito. La precedencia es: lo que manda la pantalla pisa al
+    filtro guardado, y un rango explícito pisa al tipo de período.
+  - get_dashboard_options publica el catálogo de períodos y comparativos para armar
+    la barra de filtros. La capa visual no conoce los códigos.
+  - El comparativo elegido en pantalla pisa al de cada componente, para que todo el
+    tablero compare contra lo mismo. Sin elección, cada componente conserva el suyo;
+    con una elección vacía, la comparación se apaga en todo el tablero.
+  - La etiqueta del período ("Agosto 2026", "Semana 36 de 2026", "T3 2026") se arma en
+    Python con el locale del usuario: el calendario no es asunto de la capa visual.
+  - Barra de filtros en OWL con selector de grano, navegación anterior/siguiente sobre
+    el período y selector de comparativo. Durante el recálculo el tablero queda visible
+    pero atenuado, para que cambiar de período no haga parpadear la pantalla.
+
+Además:
+  - El registro de componentes visuales pasó a ser un registry de Odoo. Un módulo que
+    agregue un tipo de componente ya no tiene que tocar el JS del motor.
+  - _metric_less_types() deja declarar componentes que no se alimentan de una métrica
+    suelta, como el avance de objetivos de la Fase 2.
+  - Un desglose por una dimensión que la métrica no declara admitir ahora devuelve un
+    aviso visible en lugar de una tabla de ceros. El caso que lo motivó es el ticket
+    promedio por vendedor: la boleta vive en la orden y el vendedor en la línea, así
+    que ese ratio no tiene denominador único por vendedor.

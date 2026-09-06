@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_primate_dashboard_root"
+              name="Dashboards"
+              sequence="55"
+              groups="group_dashboard_user"/>
+
+    <menuitem id="menu_primate_dashboard_list"
+              name="Dashboards"
+              parent="menu_primate_dashboard_root"
+              action="action_primate_dashboard"
+              sequence="10"/>
+
+    <menuitem id="menu_primate_metric_config"
+              name="Configuración"
+              parent="menu_primate_dashboard_root"
+              sequence="90"
+              groups="group_dashboard_manager"/>
+
+    <menuitem id="menu_primate_metric"
+              name="Métricas"
+              parent="menu_primate_metric_config"
+              action="action_primate_metric"
+              sequence="10"/>
+
+    <menuitem id="menu_primate_metric_version"
+              name="Versiones de métrica"
+              parent="menu_primate_metric_config"
+              action="action_primate_metric_version"
+              sequence="20"/>
+
+    <menuitem id="menu_primate_metric_dimension"
+              name="Dimensiones"
+              parent="menu_primate_metric_config"
+              action="action_primate_metric_dimension"
+              sequence="30"/>
+
+    <menuitem id="menu_primate_metric_fact"
+              name="Hechos precalculados"
+              parent="menu_primate_metric_config"
+              action="action_primate_metric_fact"
+              sequence="40"/>
+
+    <menuitem id="menu_primate_metric_fact_run"
+              name="Corridas de precálculo"
+              parent="menu_primate_metric_config"
+              action="action_primate_metric_fact_run"
+              sequence="50"/>
+
+    <menuitem id="menu_primate_metric_backfill"
+              name="Recalcular métricas"
+              parent="menu_primate_metric_config"
+              action="action_primate_metric_backfill"
+              sequence="60"/>
+
+</odoo>
