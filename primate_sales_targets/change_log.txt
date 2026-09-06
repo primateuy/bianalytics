@@ -1,0 +1,195 @@
+Sales Targets — PrimateUY (primate_sales_targets)
+=================================================
+
+17.0.1.0.0 — 2026-09-05 — Objetivos configurables
+-------------------------------------------------
+
+Fase 2 de la solución de analítica de Primate: objetivos definibles y asignables
+sobre las métricas que ya calcula primate_advanced_dashboard.
+
+QUÉ SE IMPLEMENTÓ
+
+Modelo de objetivos, siguiendo el patrón del módulo de gamificación de Odoo
+  - primate.target.definition: qué métrica se persigue, con qué grano de período y
+    sobre qué tipo de sujeto. Equivale a gamification.goal.definition, pero en lugar
+    de recorrer un modelo transaccional apunta a una métrica del motor.
+  - primate.target: el objetivo de un sujeto en un período, con su valor a alcanzar,
+    su valor actual y su porcentaje de avance. Equivale a gamification.goal.
+  - primate.target.plan (+ .line): asignación masiva. Declarás la definición, el
+    rango, el conjunto de sujetos y un valor por defecto, y genera un objetivo por
+    sujeto y por período. Equivale a gamification.challenge.
+
+Por qué modelos propios y no gamification directamente
+  - gamification.goal trabaja sobre res.users. En FORUM el vendedor es hr.employee a
+    nivel de línea de POS, así que sobre usuarios no se llega al dato real.
+  - No admite metas por local, que es la mitad del catálogo (R07).
+  - Recalcularía el avance por su cuenta, con el riesgo de que el número del objetivo
+    y el del dashboard no coincidan. Acá el avance sale de la misma tabla de hechos.
+
+Sujeto del objetivo
+  - Empleado, usuario o local. El usuario se resuelve a su empleado (hr.employee.
+    user_id, relación estándar de Odoo), porque el motor corta por empleado; si el
+    usuario no tiene empleado el objetivo lo dice en lugar de devolver cero.
+  - El filtro del avance NO incluye la compañía a propósito: el sujeto ya define el
+    corte. En FORUM hay locales que pertenecen a una compañía y registran sus ventas
+    bajo otra (PORTONES es de FORUM y factura por Faringol SA); filtrar por la
+    compañía del objetivo dejaba esos locales en cero.
+
+Sentido del objetivo
+  - "Alcanzar o superar" y "No superar", para métricas donde menos es mejor. El
+    avance del segundo se lee invertido: estar en cero es cumplir al 100 %.
+
+Seguimiento
+  - El valor actual es un campo almacenado que se refresca con el botón o con el cron,
+    no un computado al vuelo: así una lista de cientos de objetivos no dispara un
+    recálculo por fila.
+  - El cron se instala DESACTIVADO, igual que el de precálculo del motor.
+  - Un objetivo en curso no se marca como no alcanzado hasta que su período cierra.
+  - La generación del plan es idempotente: regenerar no duplica ni pisa un valor
+    ajustado a mano.
+
+Componente de dashboard
+  - "Avance de objetivos": una fila por sujeto con su barra de progreso, coloreada
+    según el desenlace. Lee los objetivos ya calculados, así que no dispara el motor
+    al pintar el tablero.
+
+FUERA DE ALCANCE
+  - Curvas de objetivo y proyección (secciones 17 y 18 de la especificación): avance
+    esperado a la fecha y proyección de cierre del período.
+  - Badges y recompensas. Si se quisieran, conviene conectarlos a gamification en vez
+    de reimplementarlos.
+  - El origen oficial de las metas de FORUM (G-19, G-30, G-32, G-33) sigue sin
+    confirmar: hoy los valores se cargan a mano o por plan.
+
+LIMITACIONES CONOCIDAS
+  - El objetivo mide una sola métrica. Un objetivo compuesto (ventas Y unidades) se
+    arma con dos objetivos.
+  - El avance de un ratio hereda las limitaciones del ratio: no se puede fijar un
+    objetivo de ticket promedio por vendedor, porque esa métrica no admite el
+    desglose por vendedor.
+
+
+17.0.1.1.0 — 2026-09-06 — Objetivos en árbol, que decantan por nivel
+---------------------------------------------------------------------
+
+Los objetivos ahora forman una jerarquía Grupo → Empresa → Sucursal → Vendedor, donde
+el objetivo de cada nivel se desagrega hacia el inferior.
+
+EL PUNTO QUE DEFINE EL DISEÑO
+
+"El nivel superior es la suma de los inferiores" vale para las métricas que se suman
+—ventas, unidades, boletas— pero NO para los promedios. El ticket promedio de una
+sucursal no es la suma ni el promedio de los tickets de sus vendedores: es la suma de
+sus ventas sobre la suma de sus boletas.
+
+    Vendedor A   $10.000 en 20 boletas  ->  $  500
+    Vendedor B   $30.000 en 10 boletas  ->  $3.000
+    Sucursal     $40.000 en 30 boletas  ->  $1.333   (ni $3.500 ni $1.750)
+
+Por eso la definición de objetivo tiene ahora un modo de reparto:
+
+  - "Se reparte entre los hijos": el objetivo del padre se divide y la suma de los
+    hijos tiene que dar el total. Corresponde a las métricas aditivas.
+  - "Baja igual a cada hijo": cada hijo recibe el mismo valor. Corresponde a los
+    ratios: si la sucursal apunta a $1.100 de ticket, cada vendedor apunta a $1.100,
+    no a $110.
+
+El modo se propone solo al elegir la métrica (un ratio propone heredar) y queda
+editable, porque el criterio final es de negocio.
+
+CÓMO SE ARMA EL ÁRBOL
+
+  - primate.target gana parent_id / child_ids, y el tipo de sujeto dejó de heredarse
+    de la definición: ahora se deduce del sujeto cargado, porque en un árbol el hijo es
+    de otro tipo que el padre. La definición fija el nivel de arranque.
+  - Se agregó "compañía" como tipo de sujeto, apoyado en la jerarquía de res.company
+    que ya existe en FORUM: la compañía raíz hace de grupo y las otras cinco cuelgan
+    de ella.
+  - Un nivel puede bajar a VARIOS tipos de sujeto a la vez. FORUM es el caso que lo
+    obligó: es cabeza de grupo y además empresa que opera, con cinco compañías hijas y
+    cuarenta y un locales propios. Si bajara solo a las hijas, esos locales quedarían
+    fuera del árbol y la suma no cerraría nunca. Al desagregarlo se crean 46 hijos y
+    los seis grupos compiten por la misma bolsa.
+  - Un local baja a los empleados que lo declaran como sucursal de objetivos.
+
+REPARTO Y CUADRE
+
+  - El valor de cada hijo se precarga ponderado por lo que ese sujeto aportó en el
+    mismo período del año anterior, leído del motor con la misma versión de métrica del
+    objetivo. Sin histórico —un local nuevo— cae a partes iguales, que es lo único
+    defendible sin datos.
+  - Después queda editable. El descuadre contra el padre se calcula y se muestra, con
+    un filtro "Descuadrados" para encontrarlos, pero NO se impone: ajustar una meta a
+    mano es una decisión de negocio, no un error a bloquear.
+  - En el modo "baja igual" no se informa descuadre: los hijos repiten el valor del
+    padre y sumarlos no significaría nada.
+  - La desagregación es idempotente: los hijos que ya existen conservan su valor.
+
+ESTRUCTURA ORGANIZATIVA
+
+Odoo no relaciona hr.employee con stock.warehouse, así que se agregó
+target_warehouse_id al empleado: la sucursal de la que depende a efectos de objetivos.
+No restringe dónde puede vender. Se carga desde la ficha del empleado.
+
+Los equipos de venta (crm.team) NO se usan como nivel: en FORUM están vacíos —los
+cuatro tienen 1, 0, 0 y 0 miembros— y se componen de usuarios, mientras que solo 16 de
+238 empleados tienen uno. Usarlos exigiría crear 222 usuarios antes.
+
+PENDIENTE
+
+  - El avance del padre se lee del motor, no se suma de los hijos. En las métricas
+    aditivas ambos deberían coincidir; mostrar la diferencia serviría para detectar
+    ventas no atribuidas a ningún vendedor.
+  - Avance esperado a la fecha y proyección de cierre (secciones 17 y 18).
+
+
+17.0.1.1.1 — 2026-09-06 — El local cuelga de quien vende, no de quien es dueño del stock
+------------------------------------------------------------------------------------------
+
+Corrección de la desagregación en esquemas de franquicia.
+
+EL CASO
+
+En FORUM diez locales tienen el almacén a nombre de la casa central y facturan sus
+ventas a nombre del franquiciado:
+
+    019  CANELONES (Faringol SA)        stock: FORUM   factura: Faringol SA
+    025  SAN CARLOS (Matias Coore)      stock: FORUM   factura: Matias Coore
+    014  COLON (Neratur SA)             stock: FORUM   factura: Neratur SA
+    012  CORDON (Gaimta SRL)            stock: FORUM   factura: Gaimta SRL
+    ... y seis más
+
+No es un dato mal cargado: es el modelo de negocio. La mercadería es de FORUM hasta
+que se vende, y el franquiciado la compra recién cuando la vendió — de eso se encarga
+pos_sale_order_sync, que al cobrarse la orden de POS genera la venta de FORUM al
+franquiciado y su compra espejo, dejando el stock momentáneamente en negativo hasta
+que la sincronización lo cubre.
+
+EL PROBLEMA QUE CAUSABA
+
+La desagregación colgaba esos locales de la compañía DUEÑA del almacén, así que sus
+ventas se contaban dos veces: una en la rama del franquiciado (que las factura) y otra
+en la rama de FORUM (que es dueño del local). Con el objetivo de agosto de 2026 la
+diferencia era de $401.573,55 sobre un total de $1.403.524,90: casi un 29 % inflado.
+
+LA CORRECCIÓN
+
+stock.warehouse gana target_company_id, "compañía comercial": la que factura las
+ventas del local. Por defecto es la dueña del almacén y se cambia cuando el local lo
+opera un franquiciado. La desagregación de una compañía en locales usa ese campo.
+
+Verificado sobre julio de 2026, con la misma definición y el mismo período:
+
+                        hijos              real del padre    suma de los hijos
+    antes (dueño)       46 (5 + 41)          1.403.524,90       1.805.098,45
+    después (comercial) 36 (5 + 31)          1.305.508,05       1.305.508,05
+
+El árbol cierra exacto: el valor del padre y la suma de sus hijos coinciden.
+
+NOTA
+
+Las ventas intercompañía que genera pos_sale_order_sync NO entran en las métricas de
+venta: la métrica lee pos.order.line y esas operaciones son sale.order. Se verificó que
+solo 2 de 6.386 órdenes de POS tienen sale_order_id. Si en algún momento se quiere una
+métrica de facturación consolidada del grupo, ahí SÍ habrá que eliminar las
+intercompañía explícitamente, porque estarían contando la misma mercadería dos veces.

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Se instala DESACTIVADO, igual que el cron de precálculo del motor: se
+         enciende cuando el cliente decide con qué frecuencia quiere refrescar. -->
+    <record id="cron_refresh_targets" model="ir.cron">
+        <field name="name">Objetivos: refrescar avance</field>
+        <field name="model_id" ref="model_primate_target"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_refresh_targets()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="False"/>
+    </record>
+
+</odoo>
