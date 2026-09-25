@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- El costo unitario acompaña a cada fila; lo que totaliza es la existencia
+         valorizada, que es la pregunta que el reporte tiene que contestar. -->
+    <record id="view_stock_quant_product_location_report_tree_management" model="ir.ui.view">
+        <field name="name">stock.quant.product.location.report.tree.management</field>
+        <field name="model">stock.quant.product.location.report</field>
+        <field name="inherit_id"
+               ref="tchistorico.view_stock_quant_product_location_report_tree"/>
+        <field name="arch" type="xml">
+            <field name="value_report" position="after">
+                <field name="management_cost"/>
+                <field name="management_value" sum="Total a costo de gestión"/>
+                <field name="management_rate" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_stock_quant_product_location_report_pivot" model="ir.ui.view">
+        <field name="name">stock.quant.product.location.report.pivot</field>
+        <field name="model">stock.quant.product.location.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Existencia a costo de gestión" sample="1">
+                <field name="product_id" type="row"/>
+                <field name="location_id" type="col"/>
+                <field name="quantity" type="measure"/>
+                <field name="management_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+</odoo>

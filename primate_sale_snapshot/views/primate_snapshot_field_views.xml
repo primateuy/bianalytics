@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_snapshot_field_tree" model="ir.ui.view">
+        <field name="name">primate.snapshot.field.tree</field>
+        <field name="model">primate.snapshot.field</field>
+        <field name="arch" type="xml">
+            <tree string="Campos a congelar" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="field_id"/>
+                <field name="name" placeholder="Se usa el nombre del campo"/>
+                <field name="notes" optional="hide"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_primate_snapshot_field" model="ir.actions.act_window">
+        <field name="name">Campos a congelar al vender</field>
+        <field name="res_model">primate.snapshot.field</field>
+        <field name="view_mode">tree</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Declará qué más querés conservar</p>
+            <p>La categoría, la familia, las etiquetas, el precio de referencia y el costo
+               ya se congelan siempre, porque son los que se usan para desglosar. Acá se
+               agrega cualquier otro campo del producto que quieras conservar tal como
+               estaba en la venta.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_primate_snapshot_field"
+              name="Campos a congelar al vender"
+              parent="account.account_account_menu"
+              action="action_primate_snapshot_field"
+              sequence="95"/>
+
+</odoo>

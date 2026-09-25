@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Las ventas que no llegan a una factura no tienen dónde mostrar su congelado,
+         así que lo muestran en la orden. -->
+    <record id="view_pos_order_form_sale_snapshot" model="ir.ui.view">
+        <field name="name">pos.order.form.sale.snapshot</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page string="Congelado de la venta" name="sale_snapshot"
+                      invisible="sale_snapshot_count == 0">
+                    <field name="sale_snapshot_count" invisible="1"/>
+                    <field name="sale_snapshot_ids" nolabel="1" readonly="1">
+                        <tree create="false" edit="false" delete="false">
+                            <field name="product_id"/>
+                            <field name="employee_id" optional="show"/>
+                            <field name="categ_id" optional="show"/>
+                            <field name="categ_parent_id" optional="show"/>
+                            <field name="quantity" sum="Total"/>
+                            <field name="price_subtotal" sum="Total"/>
+                            <field name="currency_id" column_invisible="1"/>
+                            <field name="management_cost" optional="show"/>
+                            <field name="management_value" sum="Total"/>
+                        </tree>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+</odoo>
