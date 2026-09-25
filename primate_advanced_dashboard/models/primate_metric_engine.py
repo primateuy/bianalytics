@@ -6,11 +6,18 @@ Python, de modo que la capa visual sea reconstruible y la API de la Fase 3 pueda
 exponer estas mismas operaciones sin duplicar cálculo (secciones 3.1 y 10).
 """
 import logging
+from datetime import timedelta
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
+# Días que se acepta arrastrar el último saldo conocido cuando el período consultado
+# no contiene ninguna fecha de corte. Acotado a propósito: sin tope, una tabla de saldos
+# que dejó de alimentarse seguiría mostrando el último valor para siempre.
+BALANCE_CARRY_PARAMETER = 'primate_advanced_dashboard.balance_carry_days'
+DEFAULT_BALANCE_CARRY_DAYS = 10
 
 # Traducción de las claves de filtro a la columna de la tabla de hechos.
 FILTER_COLUMNS = {
@@ -66,6 +73,9 @@ class PrimateMetricEngine(models.AbstractModel):
     def _compute_from_facts(self, version, date_from, date_to, dimension=None,
                             filters=None, limit=None):
         """Agrega la tabla de hechos de una versión que sí guarda hechos propios."""
+        if version.measure_type == 'balance':
+            return self._compute_balance_from_facts(
+                version, date_from, date_to, dimension, filters, limit)
         domain = self._build_domain(version, date_from, date_to, filters)
         column = dimension.fact_column if dimension else None
         aggregates = ['numerator:sum', 'denominator:sum']
@@ -96,10 +106,123 @@ class PrimateMetricEngine(models.AbstractModel):
         rows.sort(key=lambda row: row['value'], reverse=True)
         if limit:
             rows = rows[:limit]
-        if not rows and not column:
-            rows = [{'key': None, 'label': '', 'numerator': 0.0,
-                     'denominator': 0.0, 'value': 0.0}]
-        return rows
+        return rows or self._empty_rows(column)
+
+    @api.model
+    def _compute_balance_from_facts(self, version, date_from, date_to, dimension=None,
+                                    filters=None, limit=None):
+        """Lee una medida de saldo, que no se acumula a lo largo del período.
+
+        Sumar los hechos de un saldo daría el disparate de multiplicar la existencia por
+        la cantidad de cortes del rango. Entre dimensiones, en cambio, el saldo sí se
+        suma: el stock de dos locales es la suma de los dos.
+        """
+        column = dimension.fact_column if dimension else None
+        domain, divisor = self._balance_domain(version, date_from, date_to, filters)
+        if not domain:
+            return self._empty_rows(column)
+
+        groupby = [column] if column else []
+        results = self.env['primate.metric.fact']._read_group(
+            domain, groupby, ['numerator:sum', 'denominator:sum', 'value:sum'])
+
+        rows = []
+        for result in results:
+            if column:
+                key, numerator, denominator, value = result
+            else:
+                key = None
+                numerator, denominator, value = result
+            rows.append({
+                'key': self._key_id(key),
+                'label': self._key_label(key, column),
+                'numerator': (numerator or 0.0) / divisor,
+                'denominator': (denominator or 0.0) / divisor,
+                'value': (value or 0.0) / divisor,
+            })
+        rows.sort(key=lambda row: row['value'], reverse=True)
+        if limit:
+            rows = rows[:limit]
+        return rows or self._empty_rows(column)
+
+    @api.model
+    def _balance_domain(self, version, date_from, date_to, filters=None):
+        """Dominio y divisor con los que se lee un saldo en un período.
+
+        En saldo de cierre el dominio se reduce a la última fecha de corte del período
+        y el divisor es uno. En saldo promedio abarca todos los cortes y el divisor es
+        cuántos son, contados sobre la versión entera y no sobre el subconjunto
+        filtrado: un local sin existencia ese día no tiene fila, y su aporte al promedio
+        tiene que ser cero, no la ausencia del día.
+        """
+        if version.balance_mode == 'average':
+            dates = self._balance_snapshot_dates(version, date_from, date_to)
+            if not dates:
+                return None, 0.0
+            return (self._build_domain(version, dates[0], dates[-1], filters),
+                    float(len(dates)))
+        cutoff = self._resolve_balance_date(version, date_from, date_to)
+        if not cutoff:
+            return None, 0.0
+        return self._build_domain(version, cutoff, cutoff, filters), 1.0
+
+    @api.model
+    def _balance_snapshot_dates(self, version, date_from, date_to):
+        """Fechas de corte con hechos de esa versión dentro del período."""
+        # La granularidad es obligatoria al agrupar por una fecha: sin ella el grupo
+        # sale por mes y los cortes de un mismo mes se contarían como uno solo.
+        results = self.env['primate.metric.fact']._read_group([
+            ('metric_version_id', '=', version.id),
+            ('date', '>=', fields.Date.to_date(date_from)),
+            ('date', '<=', fields.Date.to_date(date_to)),
+        ], ['date:day'], [])
+        return sorted(result[0] for result in results)
+
+    @api.model
+    def _resolve_balance_date(self, version, date_from, date_to):
+        """Fecha de corte que representa el cierre del período.
+
+        Es la última que cae dentro del período. Si el período no contiene ninguna
+        —una consulta de tres días con cortes semanales— se arrastra el último saldo
+        conocido, pero solo hasta donde llega el parámetro de arrastre: pasado eso es
+        preferible no mostrar nada a mostrar una existencia vieja como si fuera la de
+        hoy.
+        """
+        fact_model = self.env['primate.metric.fact']
+        date_from = fields.Date.to_date(date_from)
+        date_to = fields.Date.to_date(date_to)
+        latest = fact_model.search([
+            ('metric_version_id', '=', version.id),
+            ('date', '>=', date_from),
+            ('date', '<=', date_to),
+        ], order='date desc', limit=1)
+        if latest:
+            return latest.date
+        carry = self._get_balance_carry_days()
+        latest = fact_model.search([
+            ('metric_version_id', '=', version.id),
+            ('date', '>=', date_to - timedelta(days=carry)),
+            ('date', '<', date_from),
+        ], order='date desc', limit=1)
+        return latest.date if latest else None
+
+    @api.model
+    def _get_balance_carry_days(self):
+        """Días de arrastre configurados para los saldos."""
+        parameter = self.env['ir.config_parameter'].sudo()
+        try:
+            return max(int(parameter.get_param(
+                BALANCE_CARRY_PARAMETER, DEFAULT_BALANCE_CARRY_DAYS)), 0)
+        except (TypeError, ValueError):
+            return DEFAULT_BALANCE_CARRY_DAYS
+
+    @api.model
+    def _empty_rows(self, column):
+        """Fila neutra de un desglose vacío, para no romper la capa visual."""
+        if column:
+            return []
+        return [{'key': None, 'label': '', 'numerator': 0.0,
+                 'denominator': 0.0, 'value': 0.0}]
 
     @api.model
     def _compute_ratio(self, version, date_from, date_to, dimension=None,
@@ -146,7 +269,13 @@ class PrimateMetricEngine(models.AbstractModel):
             raise UserError(_(
                 'El componente cruzado todavía no soporta ratios en modo "agregado y '
                 'dividir". Usá una métrica simple para el heatmap.'))
-        domain = self._build_domain(version, date_from, date_to, filters)
+        if version.measure_type == 'balance':
+            domain, divisor = self._balance_domain(version, date_from, date_to, filters)
+            if not domain:
+                return []
+        else:
+            domain = self._build_domain(version, date_from, date_to, filters)
+            divisor = 1.0
         groupby = [row_dimension.fact_column, column_dimension.fact_column]
         results = self.env['primate.metric.fact']._read_group(
             domain, groupby, ['numerator:sum', 'denominator:sum', 'value:sum'])
@@ -157,7 +286,7 @@ class PrimateMetricEngine(models.AbstractModel):
                 'row_label': self._key_label(row_key, row_dimension.fact_column),
                 'column': self._key_id(column_key),
                 'column_label': self._key_label(column_key, column_dimension.fact_column),
-                'value': self._final_value(version, numerator, denominator, value),
+                'value': self._final_value(version, numerator, denominator, value) / divisor,
             })
         return self._apply_display_factor(version, cells)
 

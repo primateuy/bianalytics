@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_primate_stock_balance_user,primate.stock.balance user,model_primate_stock_balance,primate_advanced_dashboard.group_dashboard_user,1,0,0,0
+access_primate_stock_balance_manager,primate.stock.balance manager,model_primate_stock_balance,primate_advanced_dashboard.group_dashboard_manager,1,1,1,1
+access_primate_stock_balance_backfill_manager,primate.stock.balance.backfill manager,model_primate_stock_balance_backfill,primate_advanced_dashboard.group_dashboard_manager,1,1,1,1

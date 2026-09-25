@@ -184,3 +184,33 @@ agosto de 2025 contra 2.424 al cierre de agosto de 2026, un -49,3 % interanual.
 
 Queda pendiente llevar eso a una tabla de saldos propia; ver la propuesta de grano
 producto base x almacén con snapshot semanal.
+
+
+17.0.1.1.0 — 2026-09-12 — Stock disponible pasa a leer la tabla de saldos
+---------------------------------------------------------------------------
+
+La v1 de forum_stock_disponible leía stock.quant por write_date, y el change_log de la
+versión anterior ya dejaba anotado que la serie que producía no significaba nada. Se
+reemplaza, con una versión nueva y no editando la v1 en el lugar, como corresponde a
+una definición ya publicada.
+
+  - version_stock_disponible queda ARCHIVADA, con la explicación en sus notas.
+  - version_stock_disponible_v2 lee primate.stock.balance, declarada como medida de
+    saldo en modo cierre. El recorte de ubicaciones internas lo aplica la tabla de
+    saldos, así que la métrica ya no necesita dominio propio.
+  - Las seis dimensiones de inventario ganan su ruta de resolución desde la tabla de
+    saldos: local por warehouse_id, compañía por company_id, y familia, subfamilia,
+    producto base y variante colgando de product_id.
+  - Los tres componentes del dashboard de inventario no fijan versión, así que toman
+    la v2 sin tocarlos.
+
+La migración a 17.0.1.1.0 archiva la v1 en las bases que ya la tienen —los datos son
+noupdate, así que no cambiaría sola— y borra sus hechos, que describían una serie que
+ya se sabe que no representa el saldo de ninguna fecha.
+
+VERIFICADO SOBRE o17_forum
+
+Con los movimientos de prueba repuestos, agosto de 2026 da 18.947 unidades, el
+desglose por local suma exactamente ese total, y el interanual contra agosto de 2025
+da -55,8 %. Sumando los hechos del mes, que es lo que hacía el motor antes, daban
+92.893.

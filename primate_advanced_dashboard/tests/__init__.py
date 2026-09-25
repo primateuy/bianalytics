@@ -2,3 +2,4 @@
 from . import test_comparison
 from . import test_metric_version
 from . import test_fact_precompute
+from . import test_balance_measure

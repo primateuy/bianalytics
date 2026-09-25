@@ -13,6 +13,7 @@ CALCULATION_FIELDS = (
     'calc_type', 'source_model', 'value_field', 'aggregation', 'distinct_field',
     'domain', 'date_field', 'refund_treatment', 'refund_field', 'ratio_mode',
     'numerator_version_id', 'denominator_version_id', 'company_id',
+    'measure_type', 'balance_mode',
 )
 
 AGGREGATIONS = [
@@ -63,6 +64,19 @@ class PrimateMetricVersion(models.Model):
     distinct_field = fields.Char(
         string='Campo para distintos',
         help='Campo por el que se cuentan valores distintos (ej. order_id para boletas).')
+    measure_type = fields.Selection(
+        [('flow', 'Flujo'), ('balance', 'Saldo')],
+        string='Tipo de medida', default='flow', required=True,
+        help='Flujo: se acumula en el tiempo, como las ventas de un mes. Saldo: es una '
+             'existencia a una fecha y NO se suma a lo largo del período, como el stock '
+             'o la cantidad de clientes activos. Entre dimensiones el saldo sí es '
+             'aditivo: el stock de dos locales se suma.')
+    balance_mode = fields.Selection(
+        [('closing', 'Saldo de cierre'), ('average', 'Saldo promedio')],
+        string='Lectura del saldo', default='closing', required=True,
+        help='Saldo de cierre: el del último corte del período, que es lo que se espera '
+             'de un "stock a fin de mes". Saldo promedio: el promedio de los cortes del '
+             'período, que es lo que corresponde al denominador de una rotación.')
     domain = fields.Char(string='Dominio', default='[]')
     date_field = fields.Char(
         string='Campo de fecha',
@@ -119,7 +133,7 @@ class PrimateMetricVersion(models.Model):
 
     @api.constrains('calc_type', 'source_model', 'aggregation', 'numerator_version_id',
                     'denominator_version_id', 'distinct_field', 'date_field',
-                    'refund_field', 'refund_treatment')
+                    'refund_field', 'refund_treatment', 'measure_type')
     def _check_definition(self):
         """Valida que la definición sea completa según el tipo de cálculo."""
         for version in self:
@@ -132,6 +146,11 @@ class PrimateMetricVersion(models.Model):
                         version.denominator_version_id == version:
                     raise ValidationError(_(
                         'Una métrica ratio no puede referenciarse a sí misma.'))
+                if version.measure_type == 'balance':
+                    raise ValidationError(_(
+                        'Un ratio no es un saldo. Lo que puede ser un saldo es su '
+                        'numerador o su denominador: marcalo en esa versión, no en "%s".'
+                    ) % version.display_name)
                 continue
             if not version.source_model:
                 raise ValidationError(_(
@@ -142,6 +161,12 @@ class PrimateMetricVersion(models.Model):
             if not version.date_field:
                 raise ValidationError(_(
                     'La métrica "%s" necesita un campo de fecha para el grano diario.'
+                ) % version.display_name)
+            if version.measure_type == 'balance' and version.aggregation != 'sum':
+                raise ValidationError(_(
+                    'La métrica "%s" es un saldo, así que su agregación tiene que ser '
+                    'suma: entre dimensiones el saldo se suma, y a lo largo del tiempo '
+                    'lo resuelve la lectura del saldo, no la agregación.'
                 ) % version.display_name)
             if version.aggregation == 'count_distinct' and not version.distinct_field:
                 raise ValidationError(_(

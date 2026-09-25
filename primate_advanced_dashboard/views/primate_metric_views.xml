@@ -53,6 +53,7 @@
                                     <field name="version"/>
                                     <field name="company_id"/>
                                     <field name="calc_type"/>
+                                    <field name="measure_type" optional="hide"/>
                                     <field name="source_model"/>
                                     <field name="aggregation"/>
                                     <field name="gap_ref"/>
@@ -99,6 +100,7 @@
                 <field name="version"/>
                 <field name="company_id"/>
                 <field name="calc_type"/>
+                <field name="measure_type" optional="show"/>
                 <field name="source_model"/>
                 <field name="aggregation"/>
                 <field name="refund_treatment"/>
@@ -159,6 +161,9 @@
                             <field name="date_field" placeholder="order_id.date_order"
                                    readonly="state == 'confirmed'"/>
                             <field name="aggregation" readonly="state == 'confirmed'"/>
+                            <field name="measure_type" readonly="state == 'confirmed'"/>
+                            <field name="balance_mode" invisible="measure_type != 'balance'"
+                                   readonly="state == 'confirmed'"/>
                         </group>
                         <group>
                             <field name="value_field" placeholder="qty"

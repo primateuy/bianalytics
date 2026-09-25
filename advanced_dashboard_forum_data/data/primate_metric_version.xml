@@ -248,7 +248,7 @@
     <record id="version_stock_disponible" model="primate.metric.version">
         <field name="metric_id" ref="metric_stock_disponible"/>
         <field name="version">1</field>
-        <field name="state">draft</field>
+        <field name="state">archived</field>
         <field name="gap_ref">G-39/G-40</field>
         <field name="calc_type">simple</field>
         <field name="source_model">stock.quant</field>
@@ -260,9 +260,36 @@
             ref('dimension_local'), ref('dimension_compania'),
             ref('dimension_subfamilia'), ref('dimension_familia'),
             ref('dimension_producto_base'), ref('dimension_variante')])]"/>
-        <field name="notes">El stock es un saldo, no un flujo: el hecho diario refleja el
-            quant al momento de su última escritura, no un snapshot por día. Qué ubicaciones
-            cuentan sigue sin definirse (G-39, G-40).</field>
+        <field name="notes">Archivada. Leía stock.quant por write_date, así que la serie
+            histórica era una línea en cero con un pico en el día de la última escritura:
+            el quant guarda el saldo de hoy, no el de cada fecha. La reemplaza la v2, que
+            lee la tabla de saldos reconstruida. Qué ubicaciones cuentan sigue sin
+            definirse (G-39, G-40).</field>
+    </record>
+
+    <record id="version_stock_disponible_v2" model="primate.metric.version">
+        <field name="metric_id" ref="metric_stock_disponible"/>
+        <field name="version">2</field>
+        <field name="state">draft</field>
+        <field name="gap_ref">G-39/G-40</field>
+        <field name="calc_type">simple</field>
+        <field name="source_model">primate.stock.balance</field>
+        <field name="date_field">date</field>
+        <field name="value_field">quantity</field>
+        <field name="aggregation">sum</field>
+        <field name="measure_type">balance</field>
+        <field name="balance_mode">closing</field>
+        <field name="domain">[]</field>
+        <field name="dimension_ids" eval="[(6, 0, [
+            ref('dimension_local'), ref('dimension_compania'),
+            ref('dimension_subfamilia'), ref('dimension_familia'),
+            ref('dimension_producto_base'), ref('dimension_variante')])]"/>
+        <field name="notes">Lee primate.stock.balance, que reconstruye el saldo de cada
+            fecha de corte restando los movimientos posteriores a la existencia actual.
+            Declarada como medida de saldo: entre locales se suma, a lo largo del período
+            no. El período muestra el saldo del último corte que contiene. El recorte de
+            ubicaciones internas lo aplica la tabla de saldos, así que la métrica no
+            necesita dominio propio; G-39 y G-40 siguen abiertos.</field>
     </record>
 
 </odoo>

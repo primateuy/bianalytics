@@ -138,3 +138,50 @@ Además:
     aviso visible en lugar de una tabla de ceros. El caso que lo motivó es el ticket
     promedio por vendedor: la boleta vive en la orden y el vendedor en la línea, así
     que ese ratio no tiene denominador único por vendedor.
+
+
+17.0.1.2.0 — 2026-09-12 — Medidas de saldo, que no se acumulan en el tiempo
+-----------------------------------------------------------------------------
+
+El motor sumaba la tabla de hechos a lo largo del período, que es lo correcto para un
+flujo — las ventas de un mes son la suma de las ventas de sus días — y un disparate
+para un saldo. Leído así, el stock de agosto de 2026 daba 92.893 unidades: la
+existencia multiplicada por los cinco cortes del mes. El valor correcto es 18.947.
+
+QUÉ SE IMPLEMENTÓ
+
+primate.metric.version gana dos campos, ambos parte de la definición del cálculo y por
+lo tanto inmutables una vez confirmada la versión:
+  - measure_type: flujo o saldo.
+  - balance_mode: saldo de cierre o saldo promedio. Cierre es lo que se espera de un
+    "stock a fin de mes"; promedio es lo que corresponde al denominador de una
+    rotación.
+
+La regla es que un saldo NO se acumula en el tiempo pero SÍ entre dimensiones: el
+stock de dos locales es la suma de los dos, el stock de dos semanas no es la suma de
+las dos. Por eso:
+  - En cierre, la lectura se reduce a la última fecha de corte del período.
+  - En promedio, abarca todos los cortes y divide por cuántos son. El divisor se
+    cuenta sobre la versión entera y no sobre el subconjunto filtrado: un local sin
+    existencia ese día no tiene fila, y su aporte al promedio tiene que ser cero, no
+    la ausencia del día.
+  - El desglose por dimensión sigue sumando, sin cambios.
+
+Arrastre del último saldo conocido
+  - Un período que no contiene ninguna fecha de corte —tres días con cortes
+    semanales— arrastra el último saldo conocido, hasta donde llega el parámetro
+    primate_advanced_dashboard.balance_carry_days.
+  - Acotado a propósito: sin tope, una tabla de saldos que dejó de alimentarse
+    seguiría mostrando el último valor para siempre, y es preferible no mostrar nada
+    a mostrar una existencia vieja como si fuera la de hoy.
+
+Alcance
+  - compute, compute_matrix y el comparativo respetan la semántica. El comparativo la
+    hereda gratis: compara el cierre de un período contra el cierre del otro, que es
+    la lectura que tiene sentido.
+  - Los ratios también, porque se apoyan en la misma lectura. Un ratio no puede ser él
+    mismo un saldo y se rechaza: lo que puede serlo es su numerador o su denominador.
+  - Una medida de saldo tiene que agregarse por suma, y se valida.
+
+Corrección al pasar: los change_log iban por 17.0.1.1.0 pero el manifest había quedado
+en 17.0.1.0.0 desde la Fase 1. Queda en 17.0.1.2.0, que es la versión real.

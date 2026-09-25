@@ -43,6 +43,11 @@
         <field name="source_model">stock.quant</field>
         <field name="field_path">location_id.warehouse_id</field>
     </record>
+    <record id="dimension_path_local_balance" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_local"/>
+        <field name="source_model">primate.stock.balance</field>
+        <field name="field_path">warehouse_id</field>
+    </record>
 
     <!-- El vendedor está en la LÍNEA de la orden de POS, en un campo llamado user_id
          que apunta a hr.employee. No aplica a métricas de inventario. -->
@@ -103,6 +108,11 @@
         <field name="source_model">stock.quant</field>
         <field name="field_path">company_id</field>
     </record>
+    <record id="dimension_path_compania_balance" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_compania"/>
+        <field name="source_model">primate.stock.balance</field>
+        <field name="field_path">company_id</field>
+    </record>
 
     <!-- Subfamilia es la categoría del producto y familia es su categoría padre.
          El árbol de categorías de FORUM tiene dos niveles útiles (27 raíces y 117
@@ -130,6 +140,11 @@
         <field name="source_model">stock.quant</field>
         <field name="field_path">product_id.categ_id</field>
     </record>
+    <record id="dimension_path_subfamilia_balance" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_subfamilia"/>
+        <field name="source_model">primate.stock.balance</field>
+        <field name="field_path">product_id.categ_id</field>
+    </record>
 
     <record id="dimension_familia" model="primate.metric.dimension">
         <field name="name">Familia</field>
@@ -152,6 +167,11 @@
     <record id="dimension_path_familia_quant" model="primate.metric.dimension.path">
         <field name="dimension_id" ref="dimension_familia"/>
         <field name="source_model">stock.quant</field>
+        <field name="field_path">product_id.categ_id.parent_id</field>
+    </record>
+    <record id="dimension_path_familia_balance" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_familia"/>
+        <field name="source_model">primate.stock.balance</field>
         <field name="field_path">product_id.categ_id.parent_id</field>
     </record>
 
@@ -181,6 +201,11 @@
         <field name="source_model">stock.quant</field>
         <field name="field_path">product_id.product_tmpl_id</field>
     </record>
+    <record id="dimension_path_producto_base_balance" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_producto_base"/>
+        <field name="source_model">primate.stock.balance</field>
+        <field name="field_path">product_id.product_tmpl_id</field>
+    </record>
 
     <record id="dimension_variante" model="primate.metric.dimension">
         <field name="name">Variante de producto</field>
@@ -197,6 +222,11 @@
     <record id="dimension_path_variante_quant" model="primate.metric.dimension.path">
         <field name="dimension_id" ref="dimension_variante"/>
         <field name="source_model">stock.quant</field>
+        <field name="field_path">product_id</field>
+    </record>
+    <record id="dimension_path_variante_balance" model="primate.metric.dimension.path">
+        <field name="dimension_id" ref="dimension_variante"/>
+        <field name="source_model">primate.stock.balance</field>
         <field name="field_path">product_id</field>
     </record>
 

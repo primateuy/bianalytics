@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Advanced Dashboards — Datos FORUM',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.1.0',
     'author': 'PrimateUY',
     'website': 'https://primate.uy',
     'category': 'Productivity/Dashboards',
@@ -25,6 +25,7 @@
     'depends': [
         'primate_advanced_dashboard',
         'primate_sales_targets',
+        'primate_stock_balance',
         'account',
         'sale',
         'point_of_sale',
