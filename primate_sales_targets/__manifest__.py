@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Targets — PrimateUY',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.1.1',
     'author': 'PrimateUY',
     'website': 'https://primate.uy',
     'category': 'Productivity/Dashboards',
