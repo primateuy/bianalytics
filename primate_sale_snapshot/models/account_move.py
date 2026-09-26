@@ -103,8 +103,31 @@ class AccountMove(models.Model):
             warehouse = order._snapshot_warehouse() if order else False
             sale_datetime = order.date_order if order else False
 
+            pares = move._snapshot_line_pairs(order)
+
+            # El congelado es por LINEA DE POS, no por factura: la constraint
+            # pos_line_uniq es sobre pos_order_line_id. Una misma orden puede
+            # terminar facturada dos veces —una anulacion y su reemplazo, o un
+            # reintento del POS despues de un error—, y la segunda factura no
+            # tiene snapshots propios, asi que la guarda de arriba no la frena.
+            # Las lineas ya congeladas se saltean: el snapshot describe la venta,
+            # no el comprobante, y volver a congelarla no agregaria informacion.
+            ya_congeladas = set()
+            pos_ids = [pl.id for _il, pl in pares if pl]
+            if pos_ids:
+                ya_congeladas = set(snapshot_model.search([
+                    ('pos_order_line_id', 'in', pos_ids),
+                ]).mapped('pos_order_line_id').ids)
+                if ya_congeladas:
+                    _logger.info(
+                        'La factura %s tiene %s lineas de POS ya congeladas: se '
+                        'saltean para no duplicar la venta.',
+                        move.name, len(ya_congeladas))
+
             rows = []
-            for invoice_line, pos_line in move._snapshot_line_pairs(order):
+            for invoice_line, pos_line in pares:
+                if pos_line and pos_line.id in ya_congeladas:
+                    continue
                 product = invoice_line.product_id
                 values = snapshot_model._product_values(product, company, date)
                 employee = (order._snapshot_line_employee(pos_line)
@@ -146,8 +169,14 @@ class AccountMove(models.Model):
     def _post(self, soft=True):
         """Congela al publicar: publicada es cuando la venta es un hecho."""
         posted = super()._post(soft=soft)
+        # El savepoint NO es opcional. Atrapar un error de psycopg2 sin el deja la
+        # transaccion abortada, y todo lo que venga despues falla con
+        # InFailedSqlTransaction — el que publica la factura se lleva un error que
+        # no tiene nada que ver. Con savepoint, el fallo del congelado se revierte
+        # solo y la transaccion sigue usable.
         try:
-            posted._build_sale_snapshot()
+            with self.env.cr.savepoint():
+                posted._build_sale_snapshot()
         except Exception:  # noqa: BLE001 - congelar no puede impedir publicar
             _logger.exception(
                 'No se pudo congelar la venta de las facturas %s', posted.ids)
