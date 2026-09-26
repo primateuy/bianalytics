@@ -172,8 +172,13 @@ class PrimateSaleSnapshot(models.Model):
             return {}
         values = {}
         for record in declared:
+            # Leer un campo declarado puede fallar contra la base —un related roto,
+            # una columna que ya no existe—. Sin savepoint eso aborta la transaccion
+            # y el except, que existe justamente para que un campo roto no tumbe la
+            # venta, termina tumbandola igual unas capas mas arriba.
             try:
-                values[record.field_id.name] = record._read_value(product)
+                with self.env.cr.savepoint():
+                    values[record.field_id.name] = record._read_value(product)
             except Exception:  # noqa: BLE001 - un campo roto no puede tumbar una venta
                 _logger.exception(
                     'No se pudo congelar el campo %s del producto %s',

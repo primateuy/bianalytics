@@ -99,8 +99,12 @@ class PosOrder(models.Model):
     def _create_order_picking(self):
         """Congela la venta al cerrarse la orden, junto con su movimiento de stock."""
         res = super()._create_order_picking()
+        # Mismo motivo que en account_move._post: sin savepoint, atrapar un error
+        # de base deja la transaccion abortada y el POS revienta despues, lejos de
+        # aca, con un InFailedSqlTransaction que no dice nada.
         try:
-            self._build_sale_snapshot()
+            with self.env.cr.savepoint():
+                self._build_sale_snapshot()
         except Exception:  # noqa: BLE001 - congelar no puede impedir cobrar
             _logger.exception(
                 'No se pudo congelar la venta de las órdenes %s', self.ids)
