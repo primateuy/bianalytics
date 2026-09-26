@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_target_definition_tree" model="ir.ui.view">
+        <field name="name">primate.target.definition.tree</field>
+        <field name="model">primate.target.definition</field>
+        <field name="arch" type="xml">
+            <tree string="Definiciones de objetivo">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="metric_id"/>
+                <field name="period_type_id"/>
+                <field name="subject_type"/>
+                <field name="direction"/>
+                <field name="target_count"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_target_definition_form" model="ir.ui.view">
+        <field name="name">primate.target.definition.form</field>
+        <field name="model">primate.target.definition</field>
+        <field name="arch" type="xml">
+            <form string="Definición de objetivo">
+                <header>
+                    <button name="action_view_targets" type="object" string="Ver objetivos"
+                            class="oe_highlight" invisible="target_count == 0"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ventas del mes por vendedor"/></h1>
+                    </div>
+                    <group>
+                        <group string="Qué se persigue">
+                            <field name="code" placeholder="ventas_mes_vendedor"/>
+                            <field name="metric_id"/>
+                            <field name="metric_version_id"
+                                   domain="[('metric_id', '=', metric_id)]"/>
+                            <field name="unit_type" readonly="1"/>
+                        </group>
+                        <group string="Cómo se evalúa">
+                            <field name="period_type_id"/>
+                            <field name="subject_type"/>
+                            <field name="direction"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                            <field name="target_count" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Descripción">
+                        <field name="description" nolabel="1" placeholder="Para qué sirve
+                            este objetivo y cómo se lee."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_primate_target_definition" model="ir.actions.act_window">
+        <field name="name">Definiciones de objetivo</field>
+        <field name="res_model">primate.target.definition</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Definí un objetivo</p>
+            <p>Una definición dice qué métrica se persigue, con qué grano de período y
+               sobre qué tipo de sujeto. Después un plan la asigna a un conjunto de
+               empleados, usuarios o locales.</p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_primate_sale_snapshot_user,primate.sale.snapshot user,model_primate_sale_snapshot,account.group_account_invoice,1,0,0,0
+access_primate_sale_snapshot_manager,primate.sale.snapshot manager,model_primate_sale_snapshot,account.group_account_manager,1,1,1,1
+access_primate_sale_snapshot_payment_user,primate.sale.snapshot.payment user,model_primate_sale_snapshot_payment,account.group_account_invoice,1,0,0,0
+access_primate_sale_snapshot_payment_manager,primate.sale.snapshot.payment manager,model_primate_sale_snapshot_payment,account.group_account_manager,1,1,1,1
+access_primate_snapshot_field_user,primate.snapshot.field user,model_primate_snapshot_field,account.group_account_invoice,1,0,0,0
+access_primate_snapshot_field_manager,primate.snapshot.field manager,model_primate_snapshot_field,account.group_account_manager,1,1,1,1
+access_primate_sale_snapshot_rebuild,primate.sale.snapshot.rebuild manager,model_primate_sale_snapshot_rebuild,account.group_account_manager,1,1,1,1

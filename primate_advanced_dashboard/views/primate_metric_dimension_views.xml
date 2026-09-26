@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_metric_dimension_tree" model="ir.ui.view">
+        <field name="name">primate.metric.dimension.tree</field>
+        <field name="model">primate.metric.dimension</field>
+        <field name="arch" type="xml">
+            <tree string="Dimensiones">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="fact_column"/>
+                <field name="model_name"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_dimension_form" model="ir.ui.view">
+        <field name="name">primate.metric.dimension.form</field>
+        <field name="model">primate.metric.dimension</field>
+        <field name="arch" type="xml">
+            <form string="Dimensión">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Local"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="fact_column"/>
+                            <field name="model_name"
+                                   placeholder="stock.warehouse"
+                                   invisible="fact_column in ('hour_slot', 'weekday')"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Rutas de resolución" name="paths">
+                            <field name="path_ids">
+                                <tree editable="bottom">
+                                    <field name="source_model"/>
+                                    <field name="field_path"/>
+                                </tree>
+                            </field>
+                            <p class="text-muted">
+                                Ruta separada por puntos desde el modelo origen hasta el
+                                registro de la dimensión. Una métrica solo puede desglosarse
+                                por las dimensiones que su modelo origen sabe resolver.
+                            </p>
+                        </page>
+                        <page string="Notas" name="notes">
+                            <field name="notes" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_primate_metric_dimension" model="ir.actions.act_window">
+        <field name="name">Dimensiones</field>
+        <field name="res_model">primate.metric.dimension</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

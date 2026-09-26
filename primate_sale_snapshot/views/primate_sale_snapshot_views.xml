@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_sale_snapshot_tree" model="ir.ui.view">
+        <field name="name">primate.sale.snapshot.tree</field>
+        <field name="model">primate.sale.snapshot</field>
+        <field name="arch" type="xml">
+            <tree string="Congelados de venta" create="false" edit="false" delete="false">
+                <field name="sale_date"/>
+                <field name="warehouse_id"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="show"/>
+                <field name="categ_parent_id" optional="hide"/>
+                <field name="employee_id" optional="show"/>
+                <field name="quantity" sum="Total"/>
+                <field name="price_subtotal" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="management_value" sum="Total"/>
+                <field name="move_id" optional="hide"/>
+                <field name="pos_order_id" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_sale_snapshot_form" model="ir.ui.view">
+        <field name="name">primate.sale.snapshot.form</field>
+        <field name="model">primate.sale.snapshot</field>
+        <field name="arch" type="xml">
+            <form string="Congelado de venta" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group string="La venta">
+                            <field name="sale_datetime"/>
+                            <field name="warehouse_id"/>
+                            <field name="employee_id"/>
+                            <field name="config_id"/>
+                            <field name="session_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="El documento">
+                            <field name="move_id"/>
+                            <field name="move_line_id"/>
+                            <field name="pos_order_id"/>
+                            <field name="pos_order_line_id"/>
+                        </group>
+                        <group string="El producto, como estaba">
+                            <field name="product_id"/>
+                            <field name="product_name"/>
+                            <field name="default_code"/>
+                            <field name="categ_id"/>
+                            <field name="categ_parent_id"/>
+                            <field name="tag_ids" widget="many2many_tags"/>
+                            <field name="list_price"/>
+                        </group>
+                        <group string="El costo, como estaba">
+                            <field name="standard_price"/>
+                            <field name="cost_report"/>
+                            <field name="report_currency_id"/>
+                            <field name="management_rate"/>
+                            <field name="management_cost"/>
+                            <field name="management_value"/>
+                        </group>
+                        <group string="Lo vendido">
+                            <field name="quantity"/>
+                            <field name="price_unit"/>
+                            <field name="discount"/>
+                            <field name="price_subtotal"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <separator string="Otros campos congelados"/>
+                    <field name="extra_values" widget="json"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_primate_sale_snapshot_search" model="ir.ui.view">
+        <field name="name">primate.sale.snapshot.search</field>
+        <field name="model">primate.sale.snapshot</field>
+        <field name="arch" type="xml">
+            <search string="Congelados de venta">
+                <field name="product_id"/>
+                <field name="warehouse_id"/>
+                <field name="employee_id"/>
+                <field name="move_id"/>
+                <field name="sale_date"/>
+                <filter name="sin_costo" string="Sin costo de gestión"
+                        domain="[('management_cost', '=', 0)]"/>
+                <filter name="sin_vendedor" string="Sin vendedor"
+                        domain="[('employee_id', '=', False)]"/>
+                <separator/>
+                <filter name="sin_factura" string="Ventas sin factura"
+                        domain="[('move_id', '=', False)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_date" string="Fecha"
+                            context="{'group_by': 'sale_date'}"/>
+                    <filter name="group_warehouse" string="Local"
+                            context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_employee" string="Vendedor"
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_categ" string="Subfamilia"
+                            context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_familia" string="Familia"
+                            context="{'group_by': 'categ_parent_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_primate_sale_snapshot" model="ir.actions.act_window">
+        <field name="name">Congelados de venta</field>
+        <field name="res_model">primate.sale.snapshot</field>
+        <field name="view_mode">tree,form,pivot</field>
+    </record>
+
+    <menuitem id="menu_primate_sale_snapshot"
+              name="Congelados de venta"
+              parent="account.menu_finance_entries_management"
+              action="action_primate_sale_snapshot"
+              sequence="90"/>
+
+</odoo>

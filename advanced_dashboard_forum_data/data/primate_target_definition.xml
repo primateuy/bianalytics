@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Definiciones de objetivo de desempeño por vendedor.
+
+         El grano del objetivo es el campo period_type_id de cada definición: acá los
+         cuatro son mensuales, pero cambiar uno a diario, semanal o trimestral es
+         cambiar ese campo. El plan después genera un objetivo por sujeto y por cada
+         período de ese grano dentro de su rango, así que una definición diaria sobre
+         un plan de un mes genera treinta objetivos por vendedor.
+
+         Los promedios (venta por boleta y unidades por boleta) se resuelven dentro del
+         período del objetivo: el motor suma numerador y denominador de todo el mes y
+         recién ahí divide, que es el criterio "agregado y dividir". NO es el promedio
+         de los promedios diarios, que estaría sesgado por los días flojos. -->
+
+    <record id="target_def_ventas_vendedor" model="primate.target.definition">
+        <field name="name">Ventas mensuales por vendedor</field>
+        <field name="code">forum_ventas_vendedor</field>
+        <field name="metric_id" ref="metric_ventas_totales"/>
+        <field name="period_type_id" ref="primate_advanced_dashboard.period_type_month"/>
+        <field name="subject_type">employee</field>
+        <field name="direction">above</field>
+        <field name="description">Importe total vendido por el vendedor en el mes.</field>
+    </record>
+
+    <record id="target_def_boletas_vendedor" model="primate.target.definition">
+        <field name="name">Boletas atendidas por mes</field>
+        <field name="code">forum_boletas_vendedor</field>
+        <field name="metric_id" ref="metric_boletas_vendedor"/>
+        <field name="period_type_id" ref="primate_advanced_dashboard.period_type_month"/>
+        <field name="subject_type">employee</field>
+        <field name="direction">above</field>
+        <field name="description">Cantidad de boletas distintas en las que participó el
+            vendedor durante el mes.</field>
+    </record>
+
+    <record id="target_def_ticket_vendedor" model="primate.target.definition">
+        <field name="name">Venta por boleta atendida (ticket promedio)</field>
+        <field name="code">forum_ticket_vendedor</field>
+        <field name="metric_id" ref="metric_venta_por_boleta_vendedor"/>
+        <field name="period_type_id" ref="primate_advanced_dashboard.period_type_month"/>
+        <field name="subject_type">employee</field>
+        <field name="direction">above</field>
+        <field name="description">Ventas del mes divididas por las boletas atendidas del
+            mes. El promedio se calcula sobre el total del período, no promediando días.</field>
+    </record>
+
+    <record id="target_def_uxb_vendedor" model="primate.target.definition">
+        <field name="name">Unidades por boleta atendida</field>
+        <field name="code">forum_uxb_vendedor</field>
+        <field name="metric_id" ref="metric_uxb_vendedor"/>
+        <field name="period_type_id" ref="primate_advanced_dashboard.period_type_month"/>
+        <field name="subject_type">employee</field>
+        <field name="direction">above</field>
+        <field name="description">Unidades del mes divididas por las boletas atendidas del
+            mes.</field>
+    </record>
+
+</odoo>

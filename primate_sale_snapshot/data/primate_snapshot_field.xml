@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Arranque razonable. La categoría, la familia, las etiquetas, el precio de
+         referencia y el costo NO están acá: esos tienen columna propia en el congelado
+         porque se usan para desglosar, y una dimensión necesita una columna. -->
+
+    <record id="snapshot_field_uom" model="primate.snapshot.field">
+        <field name="field_id" ref="product.field_product_template__uom_id"/>
+        <field name="name">Unidad de medida</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="snapshot_field_barcode" model="primate.snapshot.field">
+        <field name="field_id" ref="product.field_product_product__barcode"/>
+        <field name="name">Código de barras</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="snapshot_field_type" model="primate.snapshot.field">
+        <field name="field_id" ref="product.field_product_template__type"/>
+        <field name="name">Tipo de producto</field>
+        <field name="sequence">30</field>
+    </record>
+
+</odoo>

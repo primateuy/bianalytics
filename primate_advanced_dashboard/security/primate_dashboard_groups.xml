@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Categoría propia: un grupo sin categoría solo se ve en modo desarrollador. -->
+    <record id="module_category_primate_analytics" model="ir.module.category">
+        <field name="name">Analítica Primate</field>
+        <field name="description">Permisos de Advanced Dashboards.</field>
+        <field name="sequence">55</field>
+    </record>
+
+    <record id="group_dashboard_user" model="res.groups">
+        <field name="name">Usuario de dashboards</field>
+        <field name="category_id" ref="module_category_primate_analytics"/>
+        <field name="comment">Consulta dashboards y métricas, sin poder modificarlos.</field>
+    </record>
+
+    <record id="group_dashboard_manager" model="res.groups">
+        <field name="name">Diseñador de dashboards</field>
+        <field name="category_id" ref="module_category_primate_analytics"/>
+        <field name="implied_ids" eval="[(4, ref('group_dashboard_user'))]"/>
+        <field name="comment">Define métricas, versiones y dashboards, y lanza recálculos.</field>
+    </record>
+
+</odoo>

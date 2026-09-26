@@ -1,0 +1,71 @@
+Costo de Gestión — PrimateUY (primate_management_cost)
+=======================================================
+
+17.0.1.0.0 — 2026-09-12 — El costo con el que decide la empresa
+-----------------------------------------------------------------
+
+EL CASO
+
+FORUM razona el costo de dos maneras a la vez. El costo real es el de la última compra,
+que puede haber sido en cualquier moneda y que tchistorico deja expresado en la moneda de
+reportería: es el UCMR del producto. Pero para decidir lo llevan a pesos con un tipo de
+cambio propio, fijado a mano y sostenido en el tiempo, que no es el del mercado. Es una
+cobertura: si algo costó USD 10 y el cambio de gestión es 45, para ellos ese producto
+cuesta 450, esté el dólar donde esté.
+
+LO QUE YA EXISTÍA Y NO SE VOLVIÓ A HACER
+
+Casi todo. El relevamiento encontró que la infraestructura estaba puesta:
+
+  - res.company.monedaDeReporte — la moneda de reportería, de tchistorico.
+  - product.ultimo_costo_mr — el costo unitario en esa moneda, también de tchistorico.
+  - La moneda USG, "USD - Gestión", con el tipo de cambio manual historizado en
+    res.currency.rate: 43 desde el 01/11/2024, 45 desde el 01/11/2025. La empresa lo
+    carga a mano, una vez al año, en noviembre.
+
+Este módulo no inventa ninguna de esas piezas: las conecta.
+
+QUÉ SE IMPLEMENTÓ
+
+  - res.company.management_currency_id: qué moneda lleva el tipo de cambio de gestión.
+    Se apunta a USG en la instalación y de ahí en adelante es configuración, no una
+    convención escondida en el código.
+  - company._get_management_rate(fecha): el tipo de cambio vigente A ESA FECHA. Una venta
+    de marzo de 2025 se convierte a 43 y una de hoy a 45. Devuelve cero cuando no hay
+    cotización, en lugar de inventar un número.
+  - product.management_cost: el UCMR llevado al cambio de gestión.
+  - Dos columnas en el reporte de existencias de tchistorico: el costo de gestión
+    unitario y la existencia valorizada a ese costo.
+
+POR QUÉ EN LA VISTA SQL Y NO COMO CAMPO CALCULADO
+
+El reporte es una vista SQL, y un campo calculado no totaliza en las agrupaciones: Odoo
+solo suma lo que está en la base. Agregando las columnas al SELECT el agrupado lo
+resuelve Postgres y el total sale gratis, que era el requisito.
+
+El costo unitario va con group_operator=False a propósito: sumar costos unitarios de
+productos distintos no significa nada. Lo que totaliza es la existencia valorizada.
+
+VERIFICADO SOBRE o17_forum
+
+Un producto con UCMR de 100 dólares da un costo de gestión de 4.500 al cambio de 45, la
+vista SQL y el campo calculado coinciden en las cinco filas contrastadas, y el valorizado
+totaliza por ubicación. El stock en negativo valoriza en negativo, que es lo correcto.
+
+PENDIENTE, Y NO ES MENOR
+
+La cobertura del UCMR es hoy casi nula: 21 productos de 33.086 lo tienen distinto de
+cero. De 8.486 capas de valorización solo 1.195 traen unit_cost_report y 1.543 tienen
+remanente, y apenas 39 cumplen las dos condiciones que pide el compute de tchistorico.
+Sin UCMR no hay costo de gestión. Hay que medir esto contra producción antes de apoyar
+ninguna decisión en el número.
+
+Además:
+  - monedaDeReporte estaba vacía en las 6 compañías hasta el 12/09/2026, cuando se le
+    puso USD a FORUM para otro trabajo. En producción probablemente siga vacía.
+  - El compute de ultimo_costo_mr depende de unit_cost_report pero filtra por
+    remaining_qty, que no está en el depends: cuando se consume el stock el campo no se
+    recalcula y queda viejo. Es de tchistorico, módulo compartido, y no se tocó.
+  - USG tiene dos cotizaciones y la última es de noviembre de 2025. Odoo toma la más
+    reciente anterior a la fecha, así que va a seguir usando 45 hasta que carguen la
+    próxima.

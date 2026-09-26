@@ -1,0 +1,70 @@
+Stock Balance — PrimateUY (primate_stock_balance)
+=================================================
+
+17.0.1.0.0 — 2026-09-12 — Tabla de saldos de stock
+---------------------------------------------------
+
+EL PROBLEMA
+
+El stock es un saldo y no un flujo, y stock.quant guarda solo el saldo de hoy: su
+write_date dice cuándo se tocó el registro por última vez, no a qué fecha corresponde
+la existencia. La métrica de inventario leía el quant imputando cada saldo a su
+write_date, y en la base de FORUM 361 de los 374 quants tenían write_date del día de la
+corrida. La serie que producía era una línea en cero con un único pico: no reflejaba
+nada de la evolución real del inventario.
+
+QUÉ SE IMPLEMENTÓ
+
+primate.stock.balance — una fila por fecha de corte, variante y almacén
+  - Grano variante x almacén, no producto base: los quants son por variante, y desde
+    ahí producto base, familia y subfamilia se agregan solos por las rutas de
+    dimensión. Al revés no se puede.
+  - La compañía es la DUEÑA del almacén. Para el stock el dueño es quien tiene la
+    mercadería; la compañía comercial (target_company_id) es cosa de las ventas, no
+    del inventario.
+  - Solo cantidad, en la unidad de medida del producto. La valorización necesitaría
+    historia de standard_price y ninguna métrica del catálogo la pide todavía.
+
+La reconstrucción
+  - Parte de la existencia actual y le resta los movimientos posteriores a cada fecha
+    de corte, que es el mismo mecanismo del parámetro to_date de qty_available en el
+    core (addons/stock/models/product.py, _compute_quantities_dict).
+  - Recorre los cortes de atrás para adelante en una sola pasada por los movimientos,
+    así el costo no crece con la cantidad de cortes.
+  - Un traslado entre dos ubicaciones internas del mismo almacén se cancela solo: la
+    entrada y la salida caen en el mismo par (variante, almacén).
+  - El día de cada movimiento se resuelve en el huso de su compañía, con el mismo
+    criterio que el precálculo de hechos: nunca el del usuario que ejecuta.
+  - Es idempotente. Borra el rango antes de escribirlo, así la misma llamada sirve
+    para el cron y para un backfill.
+
+Cadencia
+  - Semanal por defecto, con corte los domingos. Alcanza para la lectura mensual e
+    interanual del catálogo y mantiene la tabla en un tamaño manejable.
+  - Configurable a diaria por parámetro de sistema, sin tocar código.
+  - El cron rehace los últimos dos cortes en cada corrida, para absorber movimientos
+    registrados con fecha retroactiva. Nace apagado, igual que el precálculo.
+  - El histórico se rehace con el wizard de reconstrucción.
+
+VERIFICACIÓN
+
+Sobre o17_forum con los 5.911 movimientos de prueba de 14 meses:
+  - 62 cortes semanales del 06/07/2025 al 06/09/2026, 23.017 filas, 3,7 segundos.
+  - Muestra de 40 filas contrastada una por una contra el qty_available a esa fecha
+    del core: cero diferencias.
+  - La curva mensual desciende de 60.002 unidades en julio de 2025 a 19.049 en agosto
+    de 2026, que es la evolución real de los movimientos. La métrica vieja, sobre los
+    mismos datos, no mostraba ninguna de esas mesetas ni escalones.
+
+NOTA SOBRE LOS SALDOS NEGATIVOS
+
+Al corte del 30/08/2026 los locales que no son del juego de prueba aportan 84 filas en
+negativo por 109 unidades. No es un defecto de la reconstrucción: es el modelo de
+franquicias de FORUM, donde el stock queda momentáneamente en negativo hasta que
+pos_sale_order_sync genera la venta de la casa central al franquiciado. La tabla lo
+refleja tal cual, que es lo correcto.
+
+PENDIENTE
+  - Qué ubicaciones cuentan como existencia disponible sigue sin definirse (G-39,
+    G-40). Hoy se toman todas las internas que pertenecen a un almacén.
+  - Valorización del saldo, si alguna vez se pide una métrica de capital inmovilizado.

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============ Tabla de hechos ============ -->
+    <record id="view_primate_metric_fact_tree" model="ir.ui.view">
+        <field name="name">primate.metric.fact.tree</field>
+        <field name="model">primate.metric.fact</field>
+        <field name="arch" type="xml">
+            <tree string="Hechos precalculados" create="false" edit="false">
+                <field name="date"/>
+                <field name="metric_version_id"/>
+                <field name="company_id" optional="show"/>
+                <field name="warehouse_id" optional="show"/>
+                <field name="employee_id" optional="hide"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="product_tmpl_id" optional="hide"/>
+                <field name="hour_slot" optional="hide"/>
+                <field name="weekday" optional="hide"/>
+                <field name="numerator" sum="Numerador"/>
+                <field name="denominator" sum="Denominador"/>
+                <field name="value" sum="Valor"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_fact_pivot" model="ir.ui.view">
+        <field name="name">primate.metric.fact.pivot</field>
+        <field name="model">primate.metric.fact</field>
+        <field name="arch" type="xml">
+            <pivot string="Hechos precalculados">
+                <field name="metric_version_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_fact_search" model="ir.ui.view">
+        <field name="name">primate.metric.fact.search</field>
+        <field name="model">primate.metric.fact</field>
+        <field name="arch" type="xml">
+            <search string="Hechos precalculados">
+                <field name="metric_version_id"/>
+                <field name="warehouse_id"/>
+                <field name="employee_id"/>
+                <field name="date"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_version" string="Versión de métrica"
+                            context="{'group_by': 'metric_version_id'}"/>
+                    <filter name="group_date" string="Fecha"
+                            context="{'group_by': 'date:day'}"/>
+                    <filter name="group_warehouse" string="Local"
+                            context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_employee" string="Vendedor"
+                            context="{'group_by': 'employee_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_primate_metric_fact" model="ir.actions.act_window">
+        <field name="name">Hechos precalculados</field>
+        <field name="res_model">primate.metric.fact</field>
+        <field name="view_mode">tree,pivot</field>
+    </record>
+
+    <!-- ============ Corridas de precálculo ============ -->
+    <record id="view_primate_metric_fact_run_tree" model="ir.ui.view">
+        <field name="name">primate.metric.fact.run.tree</field>
+        <field name="model">primate.metric.fact.run</field>
+        <field name="arch" type="xml">
+            <tree string="Corridas de precálculo" create="false">
+                <field name="name"/>
+                <field name="create_date"/>
+                <field name="origin"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="fact_count" sum="Hechos"/>
+                <field name="duration" sum="Segundos"/>
+                <field name="user_id"/>
+                <field name="state"
+                       decoration-danger="state == 'error'"
+                       decoration-success="state == 'done'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_metric_fact_run_form" model="ir.ui.view">
+        <field name="name">primate.metric.fact.run.form</field>
+        <field name="model">primate.metric.fact.run</field>
+        <field name="arch" type="xml">
+            <form string="Corrida de precálculo" create="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="origin"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                        </group>
+                        <group>
+                            <field name="state"/>
+                            <field name="fact_count"/>
+                            <field name="duration"/>
+                            <field name="user_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Versiones procesadas" name="versions">
+                            <field name="version_ids" widget="many2many_tags"/>
+                        </page>
+                        <page string="Detalle" name="log">
+                            <field name="log" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_primate_metric_fact_run" model="ir.actions.act_window">
+        <field name="name">Corridas de precálculo</field>
+        <field name="res_model">primate.metric.fact.run</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

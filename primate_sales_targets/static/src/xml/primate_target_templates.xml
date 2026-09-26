@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="primate_sales_targets.TargetProgress">
+        <div class="pad_card pst_targets">
+            <div class="pad_card_title" t-esc="props.component.name"/>
+            <div t-if="!rows.length" class="pst_empty">
+                Sin objetivos en curso para este período.
+            </div>
+            <table t-else="" class="pst_table">
+                <thead>
+                    <tr>
+                        <th>Sujeto</th>
+                        <th class="text-end">Actual</th>
+                        <th class="text-end">Objetivo</th>
+                        <th class="pst_bar_col">Avance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="rows" t-as="row" t-key="row.id" t-att-class="rowClass(row)">
+                        <td>
+                            <span t-esc="row.label"/>
+                            <small class="pst_period" t-esc="row.period"/>
+                        </td>
+                        <td class="text-end" t-esc="formatValue(row.value)"/>
+                        <td class="text-end" t-esc="formatValue(row.target)"/>
+                        <td class="pst_bar_col">
+                            <div class="pst_bar_track">
+                                <div class="pst_bar_fill" t-att-style="barWidth(row.progress)"/>
+                            </div>
+                            <span class="pst_bar_label" t-esc="formatProgress(row.progress)"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </t>
+
+</templates>

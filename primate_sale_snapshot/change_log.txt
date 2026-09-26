@@ -1,0 +1,105 @@
+Snapshot de Venta — PrimateUY (primate_sale_snapshot)
+======================================================
+
+17.0.1.0.0 — 2026-09-12 — Congelar la venta
+---------------------------------------------
+
+EL PROBLEMA, QUE NO ERA TEÓRICO
+
+El precálculo de métricas resuelve las dimensiones leyendo el producto VIVO: _build_key
+hace _resolve_path(record, 'product_id.categ_id') sobre el registro actual. O sea que
+recategorizar un producto hace que el próximo recálculo reescriba la historia, y la venta
+de julio del año pasado pase a contarse en la familia nueva. Eso pasa hoy, y va a seguir
+pasando con cualquier fuente, porque el problema no es de dónde se lee sino cuándo.
+
+La respuesta es congelar al vender.
+
+QUÉ SE GUARDA
+
+Una fila por línea de venta, con la foto del producto en ese momento:
+
+  - Categoría, familia, etiquetas, precio de referencia, nombre y referencia interna.
+  - El costo: en moneda de la compañía, en moneda de reportería, y llevado al tipo de
+    cambio de gestión de ESE día, con el tipo de cambio guardado al lado para poder
+    rehacer la cuenta aunque después lo cambien.
+  - Cualquier otro campo del producto declarado en la configuración, sin tocar código.
+
+Y lo que el punto de venta sabe y la contabilidad pierde:
+
+  - El vendedor de cada línea. account.move.line no tiene ni usuario ni empleado, y en
+    el POS el vendedor vive en la línea, no en la orden.
+  - La hora real de la venta. invoice_date es un Date: la contabilidad guarda el día y
+    pierde la hora, y con ella cualquier lectura por franja horaria.
+  - La caja, la sesión, el local y cómo se pagó.
+
+POR QUÉ UN SATÉLITE Y NO COLUMNAS EN EL APUNTE
+
+account.move.line es una tabla caliente: validación de cuadratura, conciliación, y varios
+módulos de la localización escribiendo encima. Columnas nuevas ahí se pagan en cada
+publicación. El satélite se escribe una vez, al publicar, y no se toca nunca más.
+
+Por la misma razón el cabezal del punto de venta en la factura es calculado y no
+almacenado: escribir sobre un asiento ya publicado choca con el sellado de la
+localización. El dato congelado vive en las líneas del snapshot y el cabezal lo lee de
+ahí.
+
+CONFIGURABLE HASTA DONDE TIENE SENTIDO
+
+Una lista configurable de campos y las dimensiones de BI tiran para lados opuestos: el
+motor agrupa por columnas tipadas de la tabla de hechos, y un valor guardado en un JSON
+no puede ser una dimensión. Por eso hay dos niveles:
+
+  - Columnas propias para lo que se usa para desglosar o medir: categoría, familia,
+    etiquetas, precio de referencia y los tres costos. Son pocas y conocidas.
+  - primate.snapshot.field para todo lo demás que se quiera conservar, que va a un campo
+    genérico. Sirve para auditar y para mirar, no para agrupar. Si mañana uno de esos
+    tiene que volverse dimensión, es agregar una columna y una ruta.
+
+INMUTABILIDAD
+
+Un congelado no se edita ni se borra: write y unlink lo rechazan. La única puerta para
+rehacerlo es el asistente de regeneración, que existe para arreglar una corrida fallida
+o poblar facturas anteriores a la instalación. Rehacer uno vuelve a leer el producto de
+HOY: sirve para completar lo que falta, no para recuperar cómo estaba el producto en una
+venta vieja. Eso, si no se congeló en su momento, ya no está en ningún lado.
+
+Congelar tampoco puede impedir vender: si algo falla, se registra en el log y la
+publicación sigue.
+
+LAS VENTAS SIN FACTURA
+
+En Uruguay cada venta emite un CFE, así que lo normal es que la factura exista. Lo que no
+se factura solo llega al asiento de cierre de sesión, que agrupa por cuenta e impuesto y
+pierde el producto — en la base de prueba, sus 101 líneas marcadas como "product" tienen
+product_id en NULL. Esas ventas se congelan igual, colgadas de la orden de POS, con su
+propia pestaña ahí.
+
+VERIFICADO SOBRE o17_forum
+
+804 líneas congeladas, y el número cierra exacto:
+
+    774   líneas de las 92 facturas de POS publicadas más las 2 notas de crédito
+      4   líneas de la única factura de venta publicada que no viene del POS
+     26   líneas de órdenes de POS sin factura
+    ---
+    804
+
+Las 4 facturas en borrador (9 líneas) quedan afuera a propósito: un borrador no es una
+venta. 800 quedaron enlazadas línea a línea con su línea de POS, y esas mismas 800 tienen
+vendedor y local.
+
+Publicando una factura de prueba: el congelado se dispara solo, guarda costo MR 100 USD,
+tipo de cambio 45, costo de gestión 4.500 y 9.000 por las dos unidades, y al recategorizar
+el producto después la foto no se mueve.
+
+PENDIENTE
+
+  - Solo 10 de los 804 congelados tienen costo de gestión, porque el UCMR está casi
+    vacío. Ver el change_log de primate_management_cost: es el mismo tema y hay que
+    medirlo contra producción.
+  - El local sale del almacén de la caja, que es el criterio genérico. En FORUM las cajas
+    apuntan a almacenes ficticios y el local real se resuelve por el usuario de sucursal:
+    _snapshot_warehouse() está para sobrescribirse allá.
+  - Las métricas de venta siguen leyendo pos.order.line. Mover la fuente al congelado es
+    el paso siguiente, y recién ahí hay que resolver la exclusión de las operaciones
+    intercompañía del esquema de franquicias.

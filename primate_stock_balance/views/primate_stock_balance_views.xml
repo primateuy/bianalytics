@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_stock_balance_tree" model="ir.ui.view">
+        <field name="name">primate.stock.balance.tree</field>
+        <field name="model">primate.stock.balance</field>
+        <field name="arch" type="xml">
+            <tree string="Saldos de stock" create="false" edit="false">
+                <field name="date"/>
+                <field name="warehouse_id"/>
+                <field name="product_id"/>
+                <field name="product_tmpl_id" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="quantity" sum="Total"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_stock_balance_pivot" model="ir.ui.view">
+        <field name="name">primate.stock.balance.pivot</field>
+        <field name="model">primate.stock.balance</field>
+        <field name="arch" type="xml">
+            <pivot string="Saldos de stock" sample="1">
+                <field name="date" interval="month" type="col"/>
+                <field name="warehouse_id" type="row"/>
+                <field name="quantity" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_primate_stock_balance_search" model="ir.ui.view">
+        <field name="name">primate.stock.balance.search</field>
+        <field name="model">primate.stock.balance</field>
+        <field name="arch" type="xml">
+            <search string="Saldos de stock">
+                <field name="product_id"/>
+                <field name="warehouse_id"/>
+                <field name="date"/>
+                <filter name="last_quarter" string="Últimos 90 días"
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(days=90)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="with_stock" string="Con existencia"
+                        domain="[('quantity', '>', 0)]"/>
+                <filter name="negative" string="Saldo negativo"
+                        domain="[('quantity', '&lt;', 0)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_date" string="Fecha de corte"
+                            context="{'group_by': 'date'}"/>
+                    <filter name="group_warehouse" string="Local"
+                            context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_company" string="Compañía"
+                            context="{'group_by': 'company_id'}"/>
+                    <filter name="group_product" string="Variante"
+                            context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_primate_stock_balance" model="ir.actions.act_window">
+        <field name="name">Saldos de stock</field>
+        <field name="res_model">primate.stock.balance</field>
+        <field name="view_mode">tree,pivot</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay saldos reconstruidos</p>
+            <p>Los saldos los mantiene el cron sobre los últimos cortes. Para el histórico
+               está la reconstrucción, en el mismo menú de configuración.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_primate_stock_balance"
+              name="Saldos de stock"
+              parent="primate_advanced_dashboard.menu_primate_metric_config"
+              action="action_primate_stock_balance"
+              sequence="70"/>
+
+</odoo>

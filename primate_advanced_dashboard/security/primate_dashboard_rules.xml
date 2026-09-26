@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Reglas multiempresa (sección 5.2). Las definiciones sin compañía son la base
+         compartida y las ve todo el mundo; las específicas, solo su compañía.
+         Los hechos no se recortan por compañía a nivel de regla: la agregación del
+         grupo es deliberada y la dimensión Local es la que distingue las sucursales. -->
+
+    <record id="rule_primate_metric_version_company" model="ir.rule">
+        <field name="name">Versiones de métrica: base compartida o compañías permitidas</field>
+        <field name="model_id" ref="model_primate_metric_version"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+    <record id="rule_primate_dashboard_company" model="ir.rule">
+        <field name="name">Dashboards: sin compañía o compañías permitidas</field>
+        <field name="model_id" ref="model_primate_dashboard"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+</odoo>

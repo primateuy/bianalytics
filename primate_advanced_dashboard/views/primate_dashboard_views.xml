@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============ Filtro ============ -->
+    <record id="view_primate_dashboard_filter_form" model="ir.ui.view">
+        <field name="name">primate.dashboard.filter.form</field>
+        <field name="model">primate.dashboard.filter</field>
+        <field name="arch" type="xml">
+            <form string="Filtro de dashboard">
+                <sheet>
+                    <group>
+                        <group string="Período">
+                            <field name="name"/>
+                            <field name="period_type_id"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="comparison_id"/>
+                        </group>
+                        <group string="Alcance">
+                            <field name="company_ids" widget="many2many_tags"/>
+                            <field name="warehouse_ids" widget="many2many_tags"/>
+                            <field name="team_ids" widget="many2many_tags"/>
+                            <field name="employee_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="Producto">
+                        <field name="categ_ids" widget="many2many_tags"/>
+                        <field name="product_tmpl_ids" widget="many2many_tags"/>
+                        <field name="product_ids" widget="many2many_tags"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============ Dashboard ============ -->
+    <record id="view_primate_dashboard_tree" model="ir.ui.view">
+        <field name="name">primate.dashboard.tree</field>
+        <field name="model">primate.dashboard</field>
+        <field name="arch" type="xml">
+            <tree string="Dashboards">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="company_id"/>
+                <field name="component_count"/>
+                <button name="action_open_dashboard" type="object"
+                        string="Abrir" icon="fa-external-link"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_primate_dashboard_form" model="ir.ui.view">
+        <field name="name">primate.dashboard.form</field>
+        <field name="model">primate.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Dashboard">
+                <header>
+                    <button name="action_open_dashboard" type="object"
+                            string="Abrir dashboard" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Demanda, Volumen, Mix y Conversión"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="company_id" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                            <field name="filter_id"/>
+                        </group>
+                    </group>
+                    <field name="description" placeholder="Objetivo y audiencia del dashboard"/>
+                    <notebook>
+                        <page string="Componentes" name="components">
+                            <field name="component_ids">
+                                <tree string="Componentes">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="component_type"/>
+                                    <field name="metric_id"/>
+                                    <field name="dimension_id"/>
+                                    <field name="column_dimension_id" optional="hide"/>
+                                    <field name="comparison_id"/>
+                                    <field name="row_limit" optional="hide"/>
+                                    <field name="colspan" optional="hide"/>
+                                </tree>
+                                <form string="Componente">
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="name"/>
+                                                <field name="component_type"/>
+                                                <field name="metric_id"
+                                                       options="{'no_create': True}"/>
+                                                <field name="metric_version_id"
+                                                       options="{'no_create': True}"/>
+                                            </group>
+                                            <group>
+                                                <field name="dimension_id"
+                                                       options="{'no_create': True}"/>
+                                                <field name="column_dimension_id"
+                                                       options="{'no_create': True}"
+                                                       invisible="component_type != 'heatmap'"/>
+                                                <field name="comparison_id"
+                                                       invisible="component_type == 'heatmap'"/>
+                                                <field name="row_limit"
+                                                       invisible="component_type not in ('ranking', 'table')"/>
+                                                <field name="colspan"/>
+                                            </group>
+                                        </group>
+                                        <notebook invisible="component_type != 'indicator'">
+                                            <page string="Umbrales" name="thresholds">
+                                                <field name="threshold_ids">
+                                                    <tree editable="bottom">
+                                                        <field name="sequence" widget="handle"/>
+                                                        <field name="name"/>
+                                                        <field name="has_lower_bound"/>
+                                                        <field name="value_from"
+                                                               readonly="not has_lower_bound"/>
+                                                        <field name="has_upper_bound"/>
+                                                        <field name="value_to"
+                                                               readonly="not has_upper_bound"/>
+                                                        <field name="state"/>
+                                                        <field name="color"/>
+                                                    </tree>
+                                                </field>
+                                            </page>
+                                        </notebook>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_primate_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboards</field>
+        <field name="res_model">primate.dashboard</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Acción cliente que monta el renderer OWL. -->
+    <record id="action_primate_dashboard_view" model="ir.actions.client">
+        <field name="name">Dashboard</field>
+        <field name="tag">primate_dashboard.view</field>
+    </record>
+
+</odoo>

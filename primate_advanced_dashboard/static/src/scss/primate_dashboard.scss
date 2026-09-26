@@ -1,0 +1,284 @@
+// Estilos del dashboard. Todas las clases van con prefijo pad_ para no colisionar
+// con las clases globales de Odoo.
+
+.pad_dashboard {
+    height: 100%;
+    overflow: auto;
+    background-color: #f8f9fa;
+
+    .pad_header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 16px 20px 8px;
+
+        h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .pad_period {
+            font-size: 13px;
+            color: #6c757d;
+        }
+    }
+
+    .pad_grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 12px 20px 24px;
+
+        @media (max-width: 1200px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (max-width: 768px) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    .pad_cell {
+        min-width: 0;
+    }
+
+    .pad_loading {
+        padding: 32px;
+        color: #6c757d;
+    }
+}
+
+.pad_card {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 14px 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .pad_card_title {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #6c757d;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pad_kpi_value {
+        font-size: 26px;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    .pad_empty {
+        color: #adb5bd;
+        font-size: 13px;
+        padding: 8px 0;
+    }
+}
+
+// Marca de métrica cuya definición todavía depende de un gap abierto.
+.pad_draft_badge {
+    background-color: #fff3cd;
+    color: #856404;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 10px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.pad_positive { color: #1a7f37; }
+.pad_negative { color: #b42318; }
+.pad_neutral { color: #6c757d; }
+
+.pad_kpi_variation {
+    font-size: 13px;
+    margin-top: 4px;
+
+    .pad_kpi_variation_label {
+        color: #6c757d;
+        margin-left: 6px;
+        font-size: 11px;
+    }
+}
+
+.pad_compare_table {
+    width: 100%;
+    margin-top: 10px;
+    font-size: 13px;
+
+    td { padding: 2px 0; }
+}
+
+.pad_compare_period {
+    font-size: 11px;
+    color: #adb5bd;
+    margin-top: 6px;
+}
+
+.pad_num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.pad_ranking_list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 13px;
+
+    li {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 3px 0;
+    }
+
+    .pad_ranking_label {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pad_ranking_value {
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+    }
+
+    .pad_ranking_variation {
+        font-size: 11px;
+        min-width: 58px;
+        text-align: right;
+    }
+}
+
+// Las tablas y el heatmap scrollean dentro de su tarjeta: el dashboard nunca
+// scrollea horizontalmente.
+.pad_table_scroll {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.pad_indicator {
+    &.pad_state_good { border-left: 4px solid #1a7f37; }
+    &.pad_state_warning { border-left: 4px solid #d97706; }
+    &.pad_state_bad { border-left: 4px solid #b42318; }
+
+    .pad_indicator_label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+}
+
+.pad_heatmap_table {
+    border-collapse: collapse;
+    font-size: 11px;
+    width: 100%;
+
+    th {
+        padding: 3px 6px;
+        color: #6c757d;
+        font-weight: 600;
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .pad_heatmap_cell {
+        padding: 3px 6px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        border: 1px solid #fff;
+        min-width: 42px;
+    }
+}
+
+// Barra de filtros: selección de período y de comparativo. Es la que convierte el
+// motor de comparativos en algo manejable desde la pantalla.
+.pad_dashboard {
+
+    .pad_range {
+        font-size: 13px;
+        color: #6c757d;
+    }
+
+    .pad_filterbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 20px 14px;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 12px;
+    }
+
+    .pad_filter_group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pad_filter_label {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .pad_select,
+    .pad_input {
+        padding: 4px 8px;
+        font-size: 13px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        background-color: #fff;
+        color: inherit;
+    }
+
+    .pad_nav {
+        gap: 4px;
+    }
+
+    .pad_nav_btn {
+        min-width: 28px;
+        padding: 2px 8px;
+        font-size: 16px;
+        line-height: 1.2;
+        border: 1px solid #ced4da;
+
+        &:disabled {
+            opacity: 0.4;
+        }
+    }
+
+    .pad_nav_label {
+        min-width: 150px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .pad_busy {
+        font-size: 12px;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    // Durante el recálculo el tablero queda visible pero atenuado, para que el
+    // cambio de período no haga parpadear la pantalla entera.
+    .pad_grid_busy {
+        opacity: 0.5;
+        transition: opacity 0.15s ease-in-out;
+        pointer-events: none;
+    }
+}

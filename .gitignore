@@ -1,0 +1,12 @@
+# Artefactos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos y configuración local
+.venv/
+venv/
+.env
+
+# Sistema operativo
+.DS_Store

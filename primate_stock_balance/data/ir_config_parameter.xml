@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Cadencia de los cortes. Semanal alcanza para la lectura mensual e interanual
+         del catálogo y mantiene la tabla en un tamaño manejable; en diario la misma
+         reconstrucción sirve, a costa de siete veces más filas. -->
+    <record id="parameter_stock_balance_cadence" model="ir.config_parameter">
+        <field name="key">primate_stock_balance.cadence</field>
+        <field name="value">weekly</field>
+    </record>
+
+    <!-- Día ISO en el que cae el corte semanal: 7 es domingo, o sea el cierre de la
+         semana comercial. -->
+    <record id="parameter_stock_balance_cutoff_weekday" model="ir.config_parameter">
+        <field name="key">primate_stock_balance.cutoff_weekday</field>
+        <field name="value">7</field>
+    </record>
+
+    <!-- Cortes que rehace el cron en cada corrida, para absorber movimientos
+         registrados con fecha retroactiva. -->
+    <record id="parameter_stock_balance_cron_cutoffs" model="ir.config_parameter">
+        <field name="key">primate_stock_balance.cron_cutoffs</field>
+        <field name="value">2</field>
+    </record>
+
+    <!-- Días que el motor acepta arrastrar el último saldo conocido cuando el período
+         consultado no contiene ninguna fecha de corte. Un poco más que un corte
+         semanal, para que un rango de pocos días siga mostrando el saldo vigente sin
+         llegar a mostrar uno viejo si la tabla dejó de alimentarse. -->
+    <record id="parameter_balance_carry_days" model="ir.config_parameter">
+        <field name="key">primate_advanced_dashboard.balance_carry_days</field>
+        <field name="value">10</field>
+    </record>
+
+</odoo>

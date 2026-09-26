@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_sale_snapshot_rebuild_form" model="ir.ui.view">
+        <field name="name">primate.sale.snapshot.rebuild.form</field>
+        <field name="model">primate.sale.snapshot.rebuild</field>
+        <field name="arch" type="xml">
+            <form string="Regenerar congelados de venta">
+                <p class="text-muted">
+                    Completa los congelados que falten en el rango. Ojo: rehacer uno que ya
+                    existe vuelve a leer el producto de HOY. Sirve para arreglar una corrida
+                    fallida o para poblar facturas anteriores a la instalación, no para
+                    recuperar cómo estaba el producto en una venta vieja — eso, si no se
+                    congeló en su momento, ya no está en ningún lado.
+                </p>
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="scope"/>
+                        <field name="include_pos"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_run" type="object" string="Regenerar"
+                            class="oe_highlight"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_primate_sale_snapshot_rebuild" model="ir.actions.act_window">
+        <field name="name">Regenerar congelados de venta</field>
+        <field name="res_model">primate.sale.snapshot.rebuild</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_primate_sale_snapshot_rebuild"
+              name="Regenerar congelados de venta"
+              parent="account.account_account_menu"
+              action="action_primate_sale_snapshot_rebuild"
+              sequence="96"/>
+
+</odoo>

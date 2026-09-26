@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Los objetivos viven dentro del menú del motor: son otra lectura de las mismas
+         métricas, no una aplicación aparte. -->
+    <menuitem id="menu_targets_root"
+              name="Objetivos"
+              parent="primate_advanced_dashboard.menu_primate_dashboard_root"
+              sequence="30"/>
+
+    <menuitem id="menu_targets"
+              name="Objetivos"
+              parent="menu_targets_root"
+              action="action_primate_target"
+              sequence="10"/>
+
+    <menuitem id="menu_target_plans"
+              name="Planes"
+              parent="menu_targets_root"
+              action="action_primate_target_plan"
+              groups="group_target_manager"
+              sequence="20"/>
+
+    <menuitem id="menu_target_definitions"
+              name="Definiciones"
+              parent="menu_targets_root"
+              action="action_primate_target_definition"
+              groups="group_target_manager"
+              sequence="30"/>
+
+</odoo>

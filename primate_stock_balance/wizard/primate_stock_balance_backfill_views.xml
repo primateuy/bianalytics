@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_primate_stock_balance_backfill_form" model="ir.ui.view">
+        <field name="name">primate.stock.balance.backfill.form</field>
+        <field name="model">primate.stock.balance.backfill</field>
+        <field name="arch" type="xml">
+            <form string="Reconstruir saldos de stock">
+                <p class="text-muted">
+                    Rehace los saldos de todas las fechas de corte del rango, partiendo de
+                    la existencia actual y restando los movimientos posteriores. El cron
+                    solo mantiene los últimos cortes: para el histórico se usa esto.
+                </p>
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="rebuild_facts"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_run" type="object" string="Reconstruir"
+                            class="oe_highlight"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_primate_stock_balance_backfill" model="ir.actions.act_window">
+        <field name="name">Reconstruir saldos de stock</field>
+        <field name="res_model">primate.stock.balance.backfill</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_primate_stock_balance_backfill"
+              name="Reconstruir saldos de stock"
+              parent="primate_advanced_dashboard.menu_primate_metric_config"
+              action="action_primate_stock_balance_backfill"
+              sequence="80"/>
+
+</odoo>

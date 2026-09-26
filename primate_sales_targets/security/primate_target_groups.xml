@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Se cuelga de la categoría del motor: los objetivos son parte del mismo
+         producto de analítica, no una aplicación aparte. -->
+    <record id="group_target_manager" model="res.groups">
+        <field name="name">Gestor de objetivos</field>
+        <field name="category_id"
+               ref="primate_advanced_dashboard.module_category_primate_analytics"/>
+        <field name="implied_ids"
+               eval="[(4, ref('primate_advanced_dashboard.group_dashboard_user'))]"/>
+        <field name="comment">Define objetivos, arma planes y los asigna a empleados,
+            usuarios o locales.</field>
+    </record>
+
+    <!-- El diseñador de dashboards gestiona objetivos: es quien arma el tablero que
+         los muestra. -->
+    <record id="primate_advanced_dashboard.group_dashboard_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_target_manager'))]"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_primate_target_definition_user,primate.target.definition user,model_primate_target_definition,primate_advanced_dashboard.group_dashboard_user,1,0,0,0
+access_primate_target_definition_manager,primate.target.definition manager,model_primate_target_definition,group_target_manager,1,1,1,1
+access_primate_target_user,primate.target user,model_primate_target,primate_advanced_dashboard.group_dashboard_user,1,0,0,0
+access_primate_target_manager,primate.target manager,model_primate_target,group_target_manager,1,1,1,1
+access_primate_target_plan_user,primate.target.plan user,model_primate_target_plan,primate_advanced_dashboard.group_dashboard_user,1,0,0,0
+access_primate_target_plan_manager,primate.target.plan manager,model_primate_target_plan,group_target_manager,1,1,1,1
+access_primate_target_plan_line_user,primate.target.plan.line user,model_primate_target_plan_line,primate_advanced_dashboard.group_dashboard_user,1,0,0,0
+access_primate_target_plan_line_manager,primate.target.plan.line manager,model_primate_target_plan_line,group_target_manager,1,1,1,1
