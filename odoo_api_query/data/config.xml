@@ -1,5 +1,13 @@
 <odoo>
-    <data noupdate="0">
+    <!--
+        noupdate="1": son valores de cada instalación. Con noupdate="0" cada
+        actualización del módulo volvía a poner la clave en 123456789 (pasó en
+        producción de Forum el 30-09-2026 con un -u all). El 123456789 es sólo
+        un marcador: al instalar, post_init_hook lo cambia por una clave
+        aleatoria. En las bases ya instaladas, la migración 1.1 marca estos
+        registros como noupdate (cambiar sólo el XML no alcanza).
+    -->
+    <data noupdate="1">
 
         <record id="param_api_key" model="ir.config_parameter">
             <field name="key">api_query.api_key</field>

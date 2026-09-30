@@ -1,11 +1,16 @@
 from odoo import http
 from odoo.http import request
+import hmac
 import json
 import math
 import logging
 from datetime import datetime
 
 _logger = logging.getLogger(__name__)
+
+
+class NoAutorizado(Exception):
+    """Clave de API ausente o incorrecta: responde 401, no 500."""
 
 
 class ApiQueryController(http.Controller):
@@ -63,8 +68,11 @@ class ApiQueryController(http.Controller):
             api_key = (request.httprequest.headers.get('X-API-Key') or '').strip()
             system_key = request.env['ir.config_parameter'].sudo().get_param('api_query.api_key') or ''
 
-            if not api_key or api_key != system_key:
-                raise Exception("Unauthorized")
+            # compare_digest: el tiempo de la comparación no depende de
+            # cuántos caracteres coinciden.
+            if not api_key or not system_key or not hmac.compare_digest(
+                    api_key.encode(), system_key.encode()):
+                raise NoAutorizado("Unauthorized")
 
             # -------------------------
             # PAGINACIÓN PARAMS
@@ -235,6 +243,20 @@ class ApiQueryController(http.Controller):
         # -------------------------
         # ERROR GLOBAL
         # -------------------------
+        except NoAutorizado as e:
+            _logger.warning("API: clave inválida desde %s", request.httprequest.remote_addr)
+            if log:
+                log.write({
+                    "end_datetime": datetime.now(),
+                    "status": "error",
+                    "error_message": str(e),
+                })
+            return request.make_response(
+                json.dumps({"error": "Unauthorized"}),
+                headers=[('Content-Type', 'application/json')],
+                status=401
+            )
+
         except Exception as e:
 
             _logger.exception("API ERROR GLOBAL")
